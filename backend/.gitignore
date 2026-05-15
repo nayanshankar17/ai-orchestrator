@@ -1,0 +1,7 @@
+.env
+venv/   
+# this file tells git to ignore the virtual environment folder, which contains all the installed packages and 
+# dependencies for your project. 
+# This is important because the virtual environment can be quite large and is specific to your local setup,
+# so it should not be included in version control.
+# also it helps us to tell github to not use the gemini api key that we have stored in the .env file.Q
