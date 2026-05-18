@@ -11,85 +11,156 @@
     # uvicorn: Runs your backend server
     # httpx: Used later to call AI APIs
     # python-dotenv: Loads secret API keys from .env
-#JSON: Data is always sent as JavaScript Object Notation to the backend, so we need to define the structure of that data using Pydantic models (like PromptRequest).
 
+# JSON: Data is always sent as JavaScript Object Notation to the backend,
+# so we need to define the structure of that data using
+# Pydantic models (like PromptRequest).
 
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-from dotenv import load_dotenv  # Loads environment variables from a .env file into your application, allowing you to keep sensitive information like API keys out of your codebase.
-import os # To access environment variables (like API keys) from the .env file.
+from dotenv import load_dotenv
+import os
+import time
 
+# SERVICES
+from services.gemini_service import generate_gemini_response
+from services.groq_service import generate_groq_response
+from services.openrouter_service import generate_openrouter_response
 
-from services.gemini_service import generate_gemini_response #gemini
-from services.groq_service import generate_groq_response #groq
-from services.openrouter_service import generate_openrouter_response #openrouter
+# ORCHESTRATOR
+from orchestrator.router import choose_provider
+from orchestrator.fallback import execute_with_fallback
 
 # Load environment variables
 load_dotenv()
-print(os.getenv("GEMINI_API_KEY"))
-print(os.getenv("GROQ_API_KEY"))
-print(os.getenv("OPENROUTER_API_KEY"))
 
-app = FastAPI() #Creates your backend app/server.
+app = FastAPI()
 
-# Allow React frontend to access backend
+# CORS
 app.add_middleware(
-    CORSMiddleware, #Cross-Origin Resource Sharing
+    CORSMiddleware,
 
     allow_origins=[
-        "http://localhost:5173", #here we specify the URL of our React frontend, allowing it to make requests to our FastAPI backend.
+        "http://localhost:5173",
     ],
 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-) 
+)
 
-class PromptRequest(BaseModel): #Defines the structure of incoming JSON data.
+
+# REQUEST MODEL
+class PromptRequest(BaseModel):
+
     prompt: str
+    # Multiple providers can be selected(if user selects only one provider, still the smart mode is not used then, we directly call the selected provider without routing logic)
+    providers: list[str] = []
 
-@app.get("/")  #Defines a route for the homepage, It tells FastAPI: “When someone visits /, run the function below.”
+
+# HOME ROUTE
+@app.get("/")
 def home():
-    return{
-        "message": "backend running successfully"
+
+    return {
+        "message": "AI Orchestrator Backend Running"
     }
 
-@app.post("/generate-gemini")
-def generate(request: PromptRequest):   #Extracts the prompt text from incoming JSON.
 
-    try:
-
-        # This is where you will call your AI API to generate a response based on the prompt.
-        user_prompt = request.prompt # Extract the prompt text from the request object.
-
-        response = generate_gemini_response(user_prompt) # Call the function to generate a response using the Gemini API.
-
-        return {
-            "response": response
-        }
-
-    except Exception as e:
-
-        print(e)
-
-        return {
-            "error": str(e)
-        }
-    
-@app.post("/generate-groq")
-def generate_groq(request: PromptRequest):
+# UNIFIED ORCHESTRATION ENDPOINT
+@app.post("/orchestrate")
+def orchestrate(request: PromptRequest):
 
     try:
 
         user_prompt = request.prompt
 
-        response = generate_groq_response(user_prompt)
+        # Get selected providers from frontend (for comparison mode)
+        selected_providers = request.providers
 
+        responses = [] # Store all provider responses
+
+
+        # SMART MODE
+        # If no providers selected,
+        # backend intelligently chooses one
+        if len(selected_providers) == 0:
+
+            # START TIMER
+            start_time = time.time()
+
+            # Choose best provider automatically
+            provider = choose_provider(user_prompt)
+
+            # EXECUTE WITH FALLBACK
+            response = execute_with_fallback(
+                provider,
+                user_prompt
+            )
+
+            # CALCULATE LATENCY
+            latency = round(time.time() - start_time, 2)
+
+            # Add response to responses list
+            responses.append({
+
+                "provider": provider,
+
+                "latency": f"{latency}s",
+
+                "response": response,
+
+                "status": "success"
+            })
+
+        # Run multiple selected providers in parallel and return all responses
+        else:
+
+            for provider in selected_providers:
+
+                try:
+
+                    # START TIMER
+                    start_time = time.time()
+
+                    # EXECUTE WITH FALLBACK
+                    response = execute_with_fallback(provider,user_prompt)
+
+                    # CALCULATE LATENCY
+                    latency = round(time.time() - start_time,2)
+
+                    # Store each provider response
+                    responses.append({
+
+                        "provider": provider,
+
+                        "latency": f"{latency}s",
+
+                        "response": response,
+
+                        "status": "success"
+                    })
+
+                except Exception as e:
+
+                    # Handle provider-specific failure
+                    responses.append({
+
+                        "provider": provider,
+
+                        "latency": "--",
+
+                        "response": str(e),
+
+                        "status": "error"
+                    })
+
+        # Return all responses
         return {
-            "response": response
+            "responses": responses
         }
 
     except Exception as e:
@@ -100,26 +171,9 @@ def generate_groq(request: PromptRequest):
             "error": str(e)
         }
 
-@app.post("/generate-openrouter")
-def generate_openrouter(request: PromptRequest):
 
-    try:
+# COMMAND TO RUN BACKEND:
+# python -m uvicorn main:app --reload
 
-        user_prompt = request.prompt
-
-        response = generate_openrouter_response(user_prompt)
-
-        return {
-            "response": response
-        }
-
-    except Exception as e:
-
-        print(e)
-
-        return {
-            "error": str(e)
-        }
-
-# COMMAND TO RUN BACKEND: python -m uvicorn main:app --reload
-# Backend control panel + testing dashboard:  http://127.0.0.1:8000/docs
+# Backend control panel + testing dashboard:
+# http://127.0.0.1:8000/docs

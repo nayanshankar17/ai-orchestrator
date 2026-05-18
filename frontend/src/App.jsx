@@ -1,13 +1,23 @@
 import { useState } from "react";
 
 export default function App() {
-
+ 
+  // Store the current prompt input by the user
   const [prompt, setPrompt] = useState("");
 
+  // Store the last prompt to allow regenerating responses without needing to re-enter the prompt
+  const [lastPrompt, setLastPrompt] = useState("");
+
+  // Store responses from all providers
   const [responses, setResponses] = useState([]);
 
+  // Loading state for the main generate button
   const [loading, setLoading] = useState(false);
 
+  // For regenerating specific provider response, Tracks WHICH provider is currently regenerating. This allows us to show a loading state on the specific provider card while it's regenerating, without affecting the others.
+  const [regeneratingProvider, setRegeneratingProvider] = useState(null);
+
+  // Store selected providers for smart routing
   const [selectedProviders, setSelectedProviders] = useState([]);
 
   const toggleProvider = (provider) => {
@@ -39,7 +49,7 @@ export default function App() {
   ];
 
   const sendPrompt = async () => {
-
+    setLastPrompt(prompt);
     if (!prompt.trim()) {
       return;
     }
@@ -48,137 +58,53 @@ export default function App() {
 
     try {
 
-      // If nothing selected -> use all providers
-      const activeProviders = selectedProviders.length === 0
-        ? ["Gemini", "Groq", "OpenRouter"]
-        : selectedProviders;
+      const response = await fetch(
+        "http://127.0.0.1:8000/orchestrate",
+        {
+          method: "POST",
 
-      const requests = [];
+          headers: {
+            "Content-Type": "application/json",
+          },
 
-      // Gemini
-      if (activeProviders.includes("Gemini")) {
+          body: JSON.stringify({
 
-        requests.push(
-          fetch("http://127.0.0.1:8000/generate-gemini", {
-            method: "POST",
+            prompt: prompt,
 
-            headers: {
-              "Content-Type": "application/json",
-            },
+            providers:
+              selectedProviders.length > 0
+                ? selectedProviders.map(
+                    (provider) => provider.toLowerCase()
+                  )
+                : [],
+          }),
 
-            body: JSON.stringify({
-              prompt: prompt,
-            }),
-          })
-            .then(async (res) => {
+        }
+      );
 
-              const data = await res.json();
+      const data = await response.json();
 
-              return {
-                provider: "Gemini",
-                response: data.response || data.error,
-                status: data.error ? "error" : "success",
-                time: `${(Math.random() * 2 + 1).toFixed(1)}s`,
-              };
-            })
+      setResponses(data.responses);
 
-            .catch(() => ({
-              provider: "Gemini",
-              response: "Failed to generate response.",
-              status: "error",
-              time: "--",
-            }))
-        );
-      }
+    }
 
-
-      // Groq
-      if (activeProviders.includes("Groq")) {
-
-        requests.push(
-          fetch("http://127.0.0.1:8000/generate-groq", {
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json",
-            },
-
-            body: JSON.stringify({
-              prompt: prompt,
-            }),
-          })
-            .then(async (res) => {
-
-              const data = await res.json();
-
-              return {
-                provider: "Groq",
-                response: data.response || data.error,
-                status: data.error ? "error" : "success",
-                time: `${(Math.random() * 2 + 0.5).toFixed(1)}s`,
-              };
-            })
-
-            .catch(() => ({
-              provider: "Groq",
-              response: "Failed to generate response.",
-              status: "error",
-              time: "--",
-            }))
-        );
-      }
-
-
-      // OpenRouter
-      if (activeProviders.includes("OpenRouter")) {
-
-        requests.push(
-          fetch("http://127.0.0.1:8000/generate-openrouter", {
-            method: "POST",
-
-            headers: {
-              "Content-Type": "application/json",
-            },
-
-            body: JSON.stringify({
-              prompt: prompt,
-            }),
-          })
-            .then(async (res) => {
-
-              const data = await res.json();
-
-              return {
-                provider: "OpenRouter",
-                response: data.response || data.error,
-                status: data.error ? "error" : "success",
-                time: `${(Math.random() * 3 + 1).toFixed(1)}s`,
-              };
-            })
-
-            .catch(() => ({
-              provider: "OpenRouter",
-              response: "Provider unavailable.",
-              status: "error",
-              time: "--",
-            }))
-        );
-      }
-
-
-      const results = await Promise.all(requests);
-
-      setResponses(results);
-
-    } catch (error) {
+    catch (error) {
 
       console.log(error);
+
+      setResponses([
+        {
+          provider: "System",
+          response: "Backend connection failed.",
+          status: "error",
+          time: "--",
+        },
+      ]);
     }
 
     setLoading(false);
   };
-
-
+  
   const getStatusColor = (status) => {
 
     if (status === "success") {
@@ -191,7 +117,6 @@ export default function App() {
 
     return "#facc15";
   };
-
 
   const copyResponse = async (text) => {
 
@@ -207,10 +132,56 @@ export default function App() {
     }
   };
 
+  // Regenerate response for a specific provider
+  const regenerateResponse = async (provider) => {
 
-  const regenerateResponse = (provider) => {
+    try {
 
-    alert(`Regenerate feature for ${provider} will be implemented next.`);
+      setRegeneratingProvider(provider); // Set the currently regenerating provider to show loading state on that specific card
+
+      const response = await fetch(
+        "http://127.0.0.1:8000/orchestrate",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+          },
+
+          body: JSON.stringify({
+
+            prompt: prompt,
+
+            providers: [provider.toLowerCase()],
+          }),
+        }
+      );
+
+      const data = await response.json(); // We expect the backend to return an array with a single response for the requested provider
+
+      const updatedResponse = data.responses[0]; // Extract the updated response for the specific provider
+
+      setResponses((prev) =>
+
+        prev.map((item) =>
+
+          item.provider === provider
+            ? updatedResponse
+            : item
+        )
+      );
+
+    }
+
+    catch (error) {
+
+      console.log(error);
+    }
+
+    finally {
+
+      setRegeneratingProvider(null);
+    }
   };
 
 
@@ -423,7 +394,7 @@ export default function App() {
                       margin: 0,
                     }}
                   >
-                    Response Time: {item.time}
+                    Response Latency: {item.latency}
                   </p>
 
                 </div>
@@ -547,7 +518,11 @@ export default function App() {
                     e.currentTarget.style.transform = "translateY(0px)";
                   }}
                 >
-                  Regenerate
+                  { // Show loading state only on the card that is currently regenerating
+                    regeneratingProvider === item.provider 
+                      ? "Regenerating..." 
+                      : "Regenerate"
+                  }
                 </button>
 
               </div>
