@@ -396,6 +396,14 @@ export default function App() {
                   >
                     Response Latency: {item.latency}
                   </p>
+                  <p
+                    style={{
+                      color: "#888",
+                      margin: 0,
+                    }}
+                  >
+                    Tokens used: {item.token_count} tokens
+                  </p>
 
                 </div>
 

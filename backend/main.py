@@ -18,21 +18,17 @@
 
 
 from fastapi import FastAPI
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from dotenv import load_dotenv
-import os
-import time
-
-# SERVICES
-from services.gemini_service import generate_gemini_response
-from services.groq_service import generate_groq_response
-from services.openrouter_service import generate_openrouter_response
 
 # ORCHESTRATOR
 from orchestrator.router import choose_provider
 from orchestrator.fallback import execute_with_fallback
+from orchestrator.memory import add_message, get_history, clear_history
+
 
 # Load environment variables
 load_dotenv()
@@ -73,10 +69,11 @@ def home():
 # UNIFIED ORCHESTRATION ENDPOINT
 @app.post("/orchestrate")
 def orchestrate(request: PromptRequest):
-
+    
     try:
 
         user_prompt = request.prompt
+        add_message("user", user_prompt) # Store user prompt in conversation history
 
         # Get selected providers from frontend (for comparison mode)
         selected_providers = request.providers
@@ -89,32 +86,15 @@ def orchestrate(request: PromptRequest):
         # backend intelligently chooses one
         if len(selected_providers) == 0:
 
-            # START TIMER
-            start_time = time.time()
-
             # Choose best provider automatically
             provider = choose_provider(user_prompt)
 
             # EXECUTE WITH FALLBACK
-            response = execute_with_fallback(
-                provider,
-                user_prompt
-            )
-
-            # CALCULATE LATENCY
-            latency = round(time.time() - start_time, 2)
+            response = execute_with_fallback(provider, get_history()) # Pass conversation history for context-aware response
 
             # Add response to responses list
-            responses.append({
-
-                "provider": provider,
-
-                "latency": f"{latency}s",
-
-                "response": response,
-
-                "status": "success"
-            })
+            responses.append(response)
+            add_message("assistant", response["response"]) # Store assistant response in conversation history
 
         # Run multiple selected providers in parallel and return all responses
         else:
@@ -123,26 +103,13 @@ def orchestrate(request: PromptRequest):
 
                 try:
 
-                    # START TIMER
-                    start_time = time.time()
-
                     # EXECUTE WITH FALLBACK
-                    response = execute_with_fallback(provider,user_prompt)
+                    response = execute_with_fallback(provider,get_history()) # Pass conversation history for context-aware responses
 
-                    # CALCULATE LATENCY
-                    latency = round(time.time() - start_time,2)
 
                     # Store each provider response
-                    responses.append({
-
-                        "provider": provider,
-
-                        "latency": f"{latency}s",
-
-                        "response": response,
-
-                        "status": "success"
-                    })
+                    responses.append(response)
+                    add_message("assistant", response["response"]) # Store assistant response in conversation history
 
                 except Exception as e:
 
@@ -160,7 +127,9 @@ def orchestrate(request: PromptRequest):
 
         # Return all responses
         return {
-            "responses": responses
+            "responses": responses,
+            "history": get_history(), # Return conversation history to frontend
+
         }
 
     except Exception as e:
