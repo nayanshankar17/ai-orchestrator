@@ -40,7 +40,7 @@ app.add_middleware(
         #"http://localhost:5173",
 
         "https://ai-orchestrator-murex.vercel.app"
-    ]
+    ],
 
     allow_credentials=True,
     allow_methods=["*"],
