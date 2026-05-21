@@ -57,10 +57,10 @@ export default function App() {
       icon: "⚡",
       title: "Groq",
     },
-    {
-      icon: "🌐",
-      title: "OpenRouter",
-    },
+    // {
+    //   icon: "🤗",
+    //   title: "Hugging Face",
+    // },
   ];
 
   const sendPrompt = async () => {
@@ -74,7 +74,8 @@ export default function App() {
     try {
 
       const response = await fetch(
-        "https://ai-orchestrator-i4w5.onrender.com/orchestrate",
+        // "http://127.0.0.1:8000/orchestrate",
+        "https://ai-orchestrator-i4w5.onrender.com",
         {
           method: "POST",
 
@@ -217,7 +218,8 @@ export default function App() {
       setRegeneratingProvider(provider); // Set the currently regenerating provider to show loading state on that specific card
 
       const response = await fetch(
-        "https://ai-orchestrator-i4w5.onrender.com/orchestrate",
+        // "http://127.0.0.1:8000/orchestrate",
+        "https://ai-orchestrator-i4w5.onrender.com",
         {
           method: "POST",
 
