@@ -14,13 +14,7 @@ async def run_provider(provider,history):
 
 # MAIN ORCHESTRATION LOGIC
 async def run_orchestration(user_prompt,selected_providers):
-    cached = get_cached_response(user_prompt, provider)
-    if cached:
-        print("CACHE HIT") # To check if cache is working properly or not
-        return {
-            "responses": [cached],
-            "cached": True,
-        }
+    
     add_message("user",user_prompt) #maintains the history in memomry.py
 
     responses = [] # Store all provider responses
@@ -29,6 +23,15 @@ async def run_orchestration(user_prompt,selected_providers):
     # SMART MODE: If no providers selected, backend intelligently chooses one
     if len(selected_providers) == 0:
         provider = choose_provider(user_prompt) #router.py
+
+        cached = get_cached_response(user_prompt, provider)
+        if cached:
+            print("CACHE HIT") # To check if cache is working properly or not
+            return {
+                "responses": [cached],
+                "cached": True,
+            }
+
         response = execute_with_fallback(provider,get_history()) #fallback.py
 
         responses.append(response) #add the latest response to the responses list
