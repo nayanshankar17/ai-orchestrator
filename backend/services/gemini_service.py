@@ -31,7 +31,7 @@ def generate_gemini_response(history):
 
     # Calculate latency and token count for analytics
     latency = end_timer(start_time)
-    token_count = estimate_tokens(response_text),
+    token_count = estimate_tokens(response_text)
     if response_text is None:
         token_count = 0
 
