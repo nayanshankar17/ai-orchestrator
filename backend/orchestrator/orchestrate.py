@@ -14,7 +14,7 @@ async def run_provider(provider,history):
 
 # MAIN ORCHESTRATION LOGIC
 async def run_orchestration(user_prompt,selected_providers):
-    cached = get_cached_response(user_prompt)
+    cached = get_cached_response(user_prompt, provider)
     if cached:
         print("CACHE HIT") # To check if cache is working properly or not
         return {
@@ -33,7 +33,7 @@ async def run_orchestration(user_prompt,selected_providers):
 
         responses.append(response) #add the latest response to the responses list
 
-        cache_response(user_prompt,response) #update the cache.py dictionary
+        cache_response(user_prompt,provider, response) #update the cache.py dictionary
 
         add_message("assistant", response["response"]) # update the memory.py list for maintaining the conversation
 

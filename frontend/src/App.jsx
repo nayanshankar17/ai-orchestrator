@@ -74,7 +74,7 @@ export default function App() {
     try {
 
       const response = await fetch(
-        "https://ai-orchestrator-i4w5.onrender.com/",
+        "https://ai-orchestrator-i4w5.onrender.com/orchestrate",
         {
           method: "POST",
 
