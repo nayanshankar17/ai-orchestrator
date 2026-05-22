@@ -23,11 +23,14 @@ def execute_with_fallback(provider, history):
         # bcoz tokens expire often
         if provider == "gemini": 
             log_warning("Gemini failed. Switching to Groq fallback.")
-            return generate_groq_response(history)
+            try:
+                return generate_groq_response(history)
+            except Exception as fallback_error:
+                log_error(f"Groq fallback also failed: {fallback_error}")
         
         return {
             "provider": provider,
-            "response": "Provider unavailable. Please try again later.",
+            "response": "Provider unavailable. Please try again.",
             "latency": "--",
             "token_count": 0,
             "status": "error"

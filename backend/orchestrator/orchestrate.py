@@ -67,7 +67,7 @@ async def run_orchestration(user_prompt,selected_providers):
                 responses.append({
                     "provider": "unknown",
                     "latency": "--",
-                    "response": str(result),
+                    "response": "Provider unavailable. Please try again.",
                     "status": "error",
                 })
 
