@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os   
 
 from orchestrator.analytics import start_timer, end_timer, estimate_tokens
+from orchestrator.logger import log_info
 
 load_dotenv()
 
@@ -12,12 +13,30 @@ client = Groq(
 
 def generate_groq_response(history):
 
+    log_info("Sending request to Groq")
+
     start_time = start_timer() # Start timer to measure latency for Groq API call.
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
 
-        messages=history, # Pass the conversation history to the Groq API for context-aware response generation.
+        messages= [
+                    {
+                        "role": "system",
+                        # context to maintain verbosity
+                        "content": """
+                            Give concise and brief answers.
+                            Do NOT provide long explanations unless
+                            the user explicitly asks for:
+                            - detailed explanations
+                            - step-by-step solutions
+                            - deep analysis
+                            - extensive notes
+                            Keep responses short and efficient by default. """
+            }
+        ] + history, # Pass the conversation history to the Groq API for context-aware response generation
+
+        max_tokens=400, # for token optimization.
     )
 
     # Groq works in openAI format, so we can maintain the convesrsation history in form of array
@@ -26,7 +45,7 @@ def generate_groq_response(history):
 
     # Calculate latency and token count for analytics
     latency = end_timer(start_time)
-    tokens = estimate_tokens(response_text)
+    token_count = estimate_tokens(response_text)
     if response_text is None:
         token_count = 0
 
@@ -34,6 +53,6 @@ def generate_groq_response(history):
         "provider": "Groq",
         "response": response.choices[0].message.content,
         "latency": f"{latency}s",
-        "token_count": tokens,
+        "token_count": token_count,
         "status": "success"
     }

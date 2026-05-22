@@ -3,6 +3,7 @@ from orchestrator.router import choose_provider
 from orchestrator.fallback import execute_with_fallback
 from orchestrator.memory import add_message, get_history
 from orchestrator.cache import get_cached_response,cache_response
+from orchestrator.logger import log_info
 
 #this is used to shift from sequesntial_execution(gemini -> groq ->...) to parallel_ execution(gemini + groq +...)
 import asyncio
@@ -14,6 +15,8 @@ async def run_provider(provider,history):
 
 # MAIN ORCHESTRATION LOGIC
 async def run_orchestration(user_prompt,selected_providers):
+
+    log_info(f"New prompt received: {user_prompt}" ) #eg: [INFO] 2026-05-22 Prompt received: hello
     
     add_message("user",user_prompt) #maintains the history in memomry.py
 
@@ -26,7 +29,6 @@ async def run_orchestration(user_prompt,selected_providers):
 
         cached = get_cached_response(user_prompt, provider)
         if cached:
-            print("CACHE HIT") # To check if cache is working properly or not
             return {
                 "responses": [cached],
                 "cached": True,

@@ -34,8 +34,13 @@ app = FastAPI()
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    #who can access thia backend
+    allow_origins=[
+        "http://localhost:5173", # local host
+        "https://ai-orchestrator-murex.vercel.app" # vercel frontend
+    ],
+
+    allow_credentials=True, # allows fronted to send cookies, data etc.. useful in authentication and user login 
     allow_methods=["*"],
     allow_headers=["*"],
 )

@@ -227,9 +227,9 @@ export default function App() {
 
           body: JSON.stringify({
 
-            prompt: prompt,
+            prompt: lastPrompt || prompt,
 
-            providers: [provider.toLowerCase()],
+            providers: [provider.toLowerCase().includes("gemini") ? "gemini" : "groq"],
           }),
         }
       );
@@ -247,6 +247,39 @@ export default function App() {
             : item
         )
       );
+
+      // Update displayed responses and trigger the typing animation for just this provider
+      setDisplayedResponses((prev) => {
+        const updated = [...prev];
+        const index = updated.findIndex((item) => item.provider === provider);
+        if (index !== -1) {
+          updated[index] = {
+            ...updatedResponse,
+            response: "",
+          };
+
+          let currentText = "";
+          let i = 0;
+          const interval = setInterval(() => {
+            if (i < updatedResponse.response.length) {
+              currentText += updatedResponse.response[i];
+              setDisplayedResponses((prevDisp) => {
+                const innerUpdated = [...prevDisp];
+                innerUpdated[index] = {
+                  ...innerUpdated[index],
+                  response: currentText,
+                };
+                return innerUpdated;
+              });
+              i++;
+            } else {
+              clearInterval(interval);
+            }
+          }, 5);
+          animationIntervals.current.push(interval);
+        }
+        return updated;
+      });
 
     }
 
