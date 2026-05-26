@@ -43,7 +43,7 @@ def cache_cleanup():
 
         
 
-#this func stores the prompt and the respective response in a key:value pair 
+#this func stores the prompt and the respective response and provider, in a key:value pair 
 def cache_response(prompt, provider, response):
     
     cache_cleanup() # call cache_cleanup() function evreytime a new key:value pair is added
