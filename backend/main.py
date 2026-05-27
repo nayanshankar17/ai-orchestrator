@@ -26,9 +26,13 @@ from dotenv import load_dotenv
 # ORCHESTRATOR
 from orchestrator.orchestrate import run_orchestration
 
+# Import authentication router
+from app.routers.auth_routes import router as auth_router
+
 # Load environment variables
 load_dotenv()
 
+#fastAPI application
 app = FastAPI()
 
 # CORS
@@ -71,6 +75,9 @@ async def orchestrate(
         request.providers
     )
 
+
+# Register authentication router
+app.include_router(auth_router)
 
 # COMMAND TO RUN BACKEND:
 # python -m uvicorn main:app --reload

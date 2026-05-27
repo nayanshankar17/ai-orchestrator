@@ -28,3 +28,20 @@ SessionLocal =  sessionmaker(
 
 # base class for all models, every table will inherit from this
 Base = declarative_base()
+
+# Dependency function for FastAPI
+# Provides database session to routes
+def get_db():
+
+    # Create database session
+    db = SessionLocal()
+
+    try:
+
+        # Give session to route
+        yield db
+
+    finally:
+
+        # Always close session after request
+        db.close()

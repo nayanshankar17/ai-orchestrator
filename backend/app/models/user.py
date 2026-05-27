@@ -25,6 +25,7 @@ class User(Base):
         String,
         unique=True, # no duplicate email_id's allowed for multiple users
         nullable=False,
+        index=True
     )
     password_hash = Column(
         String,
