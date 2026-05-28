@@ -1,4 +1,5 @@
-# THIS FILE IS USED TO VALIDATE INCOMING REQUESTS, ENSURE CORRECT DATA-TYPES (eg: name = 123, REJECTED) 
+# THIS FILE IS USED TO VALIDATE INCOMING REQUESTS FOR USER_DATA, ENSURE CORRECT DATA-TYPES (eg: name = 123, REJECTED) 
+# in this file datatypes are defined as per Python
 
 #basemodel used for current request validation
 from pydantic import BaseModel
@@ -13,3 +14,4 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str
+

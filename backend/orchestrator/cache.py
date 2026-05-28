@@ -1,3 +1,7 @@
+# CACHE IS USED TO AVOID RECOMPUTATION OF PROMPTS, (eg: prompt: hi, if user sends the same prompt again, the app will check the cache
+# and will find the same prompt recently executed, as a result it will return the same response instead of executing the prompt again, this 
+# reduces execution time and the number of tokens used)
+
 from orchestrator.logger import log_info
 
 import time

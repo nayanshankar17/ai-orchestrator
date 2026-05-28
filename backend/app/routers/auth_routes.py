@@ -5,8 +5,12 @@
 # Used for raising API errors
 from fastapi import APIRouter, Depends, HTTPException
 
+from fastapi.security import OAuth2PasswordRequestForm
+
 # SQLAlchemy database session type
 from sqlalchemy.orm import Session
+
+from sqlalchemy.future import select
 
 # Import database session dependency
 from app.database.db import get_db
@@ -17,16 +21,17 @@ from app.models.user import User
 from app.auth.hashing import hash_password, verify_password
 from app.auth.jwt_handler import create_access_token
 from app.schemas.user_schema import UserCreate, UserLogin
+from app.auth.dependencies import get_current_user
 
-#create authenticatio router
+#create authentication router, latera used to identify login endpoints in dependencies.py (eg: /auth/login.. )
 router = APIRouter(
-    prefix="/auth", # All auth routes start with /auth, prefix are addded to for cleaner APIs, for (eg: /chat/.. , /auth/.. ..etc)
+    prefix="/auth", # All auth routes start with /auth, prefix are addded to for cleuvicorn main:app --reloadaner APIs, for (eg: /chat/.. , /auth/.. ..etc)
     tags=["Authentication"], # Group name in Swagger UI
 )
 
 
-# USER REGISTRATION ROUTES
-@router.post("/register")
+# USER REGISTRATION ROUTE
+@router.post("/register") # POST /auth/register
 def register_user(
     user: UserCreate, # Incoming request body
     db: Session = Depends(get_db) # Inject database session
@@ -58,15 +63,20 @@ def register_user(
     } 
         
 #USER LOGIN ROUTE
-@router.post("/login")
+@router.post("/login") # POST /auth/login
 def login_user(
-    user: UserLogin, # Incoming login request body
+    form_data: OAuth2PasswordRequestForm = Depends(), # Automatically extracts username/password
     db: Session = Depends(get_db) # Inject database session
 ):
     # Find user using email
-    db_user = db.query(User).filter(
-        User.email == user.email
-    ).first()
+    statement = select(User).where(User.email == form_data.username) # We are treating username as email
+
+    # Execute query
+    result = db.execute(statement)
+
+
+    # Extract User object
+    db_user = result.scalar_one_or_none()
 
     #if the user_email doesnt exist
     if not db_user:
@@ -76,7 +86,7 @@ def login_user(
         )
     
     #verify entered password
-    valid_password = verify_password(user.password, db_user.password_hash)
+    valid_password = verify_password(form_data.password, db_user.password_hash)
 
     # if entered password is wrong
     if not valid_password:
@@ -95,4 +105,22 @@ def login_user(
     return{
         "access_token": access_token, # Generated JWT token
         "token_type": "bearer" # Authentication type, bearer: whoever BEARS (holds) the token gets access
+    }
+
+#PROTECTED ROUTE
+# Returns currently authenticated user
+@router.get("/me")
+def get_me(
+    # Extract JWT token -> Decode token -> Find user in database -> Inject user into route
+    current_user: User = Depends(get_current_user),
+):  
+    if current_user is None:
+        return{
+            "message": "Invalid Authenticaton"
+        }
+    
+    return{
+        "id": str(current_user.id), # convert UUID to string
+        "name": current_user.name,
+        "email": current_user.email,
     }

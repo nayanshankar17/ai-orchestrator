@@ -5,6 +5,8 @@ import uuid
 
 from app.database.db import Base
 
+from sqlalchemy.orm import relationship # Used for table relationships
+
 # Create User model, this becomes a table in PostgreSQL
 class User(Base):
     __tablename__ = "users"
@@ -30,4 +32,10 @@ class User(Base):
     password_hash = Column(
         String,
         nullable=False,
+    )
+
+    # chat(s):plural bcoz a user can have multiple chats 
+    chats = relationship(
+        "Chat",
+        back_populates= "user"
     )

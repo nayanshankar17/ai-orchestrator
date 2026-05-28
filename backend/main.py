@@ -26,8 +26,9 @@ from dotenv import load_dotenv
 # ORCHESTRATOR
 from orchestrator.orchestrate import run_orchestration
 
-# Import authentication router
+# Import routers(auth, chat,..)
 from app.routers.auth_routes import router as auth_router
+from app.routers.chat_routes import router as chat_router
 
 # Load environment variables
 load_dotenv()
@@ -76,8 +77,10 @@ async def orchestrate(
     )
 
 
-# Register authentication router
+# Register routers (auth, chat,..)
 app.include_router(auth_router)
+app.include_router(chat_router)
+
 
 # COMMAND TO RUN BACKEND:
 # python -m uvicorn main:app --reload
