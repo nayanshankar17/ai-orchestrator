@@ -39,3 +39,10 @@ class User(Base):
         "Chat",
         back_populates= "user"
     )
+
+    # One user can have many sessions
+    sessions = relationship(
+        "ChatSession",
+        back_populates="user",
+        cascade="all, delete-orphan" #if user delted, all its sessions are also deleted
+    )
