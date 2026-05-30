@@ -1,3 +1,5 @@
+# MODEL FOR CHAT SESSIONS DATABASE, MANY SESSIONS -> ONE USER
+
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, DateTime, ForeignKey
@@ -6,6 +8,8 @@ from sqlalchemy.orm import relationship
 
 # Base model
 from app.database.db import Base
+
+from app.models.message import Message
 
 
 class ChatSession(Base):

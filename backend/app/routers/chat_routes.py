@@ -11,12 +11,10 @@ from app.models.user import User
 from app.models.chat import Chat
 from app.schemas.chat_schema import CreateChat, ChatResponse, ChatHistoryResponse
 
-
 router = APIRouter(
     prefix="/chat", # All routes start with /chat
     tags=["Chat"] # swagger group name
 )
-
 
 # ROUTES TO STORE NEW CHAT IN HISTORY OF USER USING USER_ID IN DB
 @router.post(
@@ -44,8 +42,7 @@ def send_chat(
     db.refresh(new_chat) # Refresh object from PostgreSQL
 
     return new_chat
-
-
+                
 # ROUTE TO GET CHAT HISTORY OF A PARTICULAR USER USING THEIR ID FROM DB
 @router.get(
     "/history", #GET /chat/history

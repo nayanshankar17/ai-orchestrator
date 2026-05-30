@@ -1,3 +1,13 @@
+# MODEL FOR MESSAGES IN A SESSION
+
+# Visualisation:
+#   id    | session_id |        role          |   content        |  timeStamp    
+#_________|____________|______________________|__________________|____________
+#   1     |  1         |  user                |  hello           | ..
+#   2     |  1         |  assisstant          |  hi, how are you?| ..
+#   3     |  1         |  ...                 |  ...             | ..
+#   ..    |  ..        |  ...                 |  ...             | ..
+
 import uuid
 from datetime import datetime
 from sqlalchemy import (
@@ -29,27 +39,21 @@ class Message(Base):
     # Parent session ID
     session_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("chat_sessions.id"),
+        ForeignKey("chat_sessions.id"), #every message must belong to a session
         nullable=False
     )
 
-
-    # Message sender
-    # Example:
-    # user
-    # assistant
+    # tells who sent the message(user, assisstant, system) all are stored in one table, only role changes
     role = Column(
         String,
         nullable=False
     )
 
-
-    # Actual message content
+    # Stores messages in the convo
     content = Column(
         Text,
         nullable=False
     )
-
 
     # Message timestamp
     timestamp = Column(
