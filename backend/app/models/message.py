@@ -7,6 +7,10 @@
 #   2     |  1         |  assisstant          |  hi, how are you?| ..
 #   3     |  1         |  ...                 |  ...             | ..
 #   ..    |  ..        |  ...                 |  ...             | ..
+#   11    |  2         |  user                |  hello           | ..
+#   12    |  2         |  assisstant          |  hi, how are you?| ..
+#   13    |  2         |  ...                 |  ...             | ..
+#   ..    |  ..        |  ...                 |  ...             | ..
 
 import uuid
 from datetime import datetime
@@ -56,7 +60,7 @@ class Message(Base):
     )
 
     # Message timestamp
-    timestamp = Column(
+    created_at = Column(
         DateTime,
         default=datetime.utcnow
     )

@@ -1,5 +1,5 @@
 # MODEL FOR CHAT SESSIONS DATABASE, MANY SESSIONS -> ONE USER
-
+# 
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, DateTime, ForeignKey
@@ -16,14 +16,14 @@ class ChatSession(Base):
 
     __tablename__ = "chat_sessions"
 
+    #session id(unique id for each session)
     id = Column(
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4
     )
 
-
-    # Session owner
+    # Session owner(id  of user)
     user_id = Column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
@@ -31,7 +31,6 @@ class ChatSession(Base):
     )
 
     # Conversation title
-
     title = Column(
         String,
         nullable=False

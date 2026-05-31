@@ -89,3 +89,7 @@ app.include_router(session_router)
 
 # Backend control panel + testing dashboard: Swagger Docs
 # http://127.0.0.1:8000/docs
+
+# COMMANDS TO RUN ALEMBIC WHENEVER WE UPDATE ANY MODEL
+# alembic revision --autogenerate -m "describe change"
+# alembic upgrade head

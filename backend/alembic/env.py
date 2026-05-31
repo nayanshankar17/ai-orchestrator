@@ -21,6 +21,8 @@ if config.config_file_name is not None:
 from app.database.db import Base
 from app.models.user import User
 from app.models.chat import Chat
+from app.models.chat_session import ChatSession
+from app.models.message import Message
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
