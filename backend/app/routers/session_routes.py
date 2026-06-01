@@ -12,7 +12,7 @@ from app.schemas.session_schema import sessionCreate, sessionResponse, messageCr
 
 router = APIRouter(
     prefix="/session", # All routes start with /session
-    tags=["session"], #swagger group name
+    tags=["Session"], #swagger group name
 )
 
 

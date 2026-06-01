@@ -30,6 +30,7 @@ from orchestrator.orchestrate import run_orchestration
 from app.routers.auth_routes import router as auth_router
 from app.routers.chat_routes import router as chat_router
 from app.routers.session_routes import router as session_router
+from app.routers.analytics_routes import router as analytics_router
 
 # Load environment variables
 load_dotenv()
@@ -82,7 +83,7 @@ async def orchestrate(
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(session_router)
-
+app.include_router(analytics_router)
 
 # COMMAND TO RUN BACKEND:
 # python -m uvicorn main:app --reload
