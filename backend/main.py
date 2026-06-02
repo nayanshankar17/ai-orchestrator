@@ -19,18 +19,14 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 
 from dotenv import load_dotenv
 
-# ORCHESTRATOR
-from orchestrator.orchestrate import run_orchestration
-
-# Import routers(auth, chat,..)
+# Import routers(auth, session, analytics, orchestrator ...)
 from app.routers.auth_routes import router as auth_router
-from app.routers.chat_routes import router as chat_router
 from app.routers.session_routes import router as session_router
 from app.routers.analytics_routes import router as analytics_router
+from routers.orchestrator_routes import router as orchestrator_router
 
 # Load environment variables
 load_dotenv()
@@ -52,13 +48,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# REQUEST MODEL
-class PromptRequest(BaseModel):
-    prompt: str
-    # Multiple providers can be selected(if user selects only one provider, still the smart mode is not used then, we directly call the selected provider without routing logic)
-    providers: list[str] = []
-
-
 # HOME ROUTE
 @app.get("/")
 def home():
@@ -67,23 +56,12 @@ def home():
         "message": "AI Orchestrator Backend Running"
     }
 
-# UNIFIED ORCHESTRATION ENDPOINT
-@app.post("/orchestrate")
-
-async def orchestrate(
-    request: PromptRequest
-):
-    return await run_orchestration(
-        request.prompt,
-        request.providers
-    )
-
-
 # Register routers (auth, chat,..)
 app.include_router(auth_router)
-app.include_router(chat_router)
 app.include_router(session_router)
 app.include_router(analytics_router)
+app.include_router(orchestrator_router)
+
 
 # COMMAND TO RUN BACKEND:
 # python -m uvicorn main:app --reload

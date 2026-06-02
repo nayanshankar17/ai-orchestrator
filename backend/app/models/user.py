@@ -34,12 +34,6 @@ class User(Base):
         nullable=False,
     )
 
-    # chat(s):plural bcoz a user can have multiple chats 
-    chats = relationship(
-        "Chat",
-        back_populates= "user"
-    )
-
     # One user can have many sessions
     sessions = relationship(
         "ChatSession",

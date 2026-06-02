@@ -6,9 +6,9 @@ from sqlalchemy import select
 from app.database.db import get_db
 from app.auth.dependencies import get_current_user
 from app.models.user import User
-from app.models.message import Message
 from app.models.chat_session import ChatSession
 from app.schemas.analytics_schema import AnalyticsSummary, MyAnalyticsSummary, SessionAnalyticsSummary
+from app.services.analytics_service import AnalyticsService
 
 router = APIRouter(
     prefix="/analytics", # All routes start with /analytics
@@ -24,21 +24,8 @@ router = APIRouter(
 def get_summary(
     db: Session = Depends(get_db)
 ):
-    # Total users
-    total_users = db.query(User).count()
-
-    # Total sessions
-    total_sessions = db.query(ChatSession).count()
-
-    # Total messages
-    total_messages = db.query(Message).count()
-
-    # DATA IS NOT RETURNED AS A DICTIONARY BUT AS A PYDANTIC MODEL OBJECT, THIS ENSURES THE RESPONSE ALWAYS FOLLOWS THE DEFINED SCHEMA
-    return AnalyticsSummary(
-        total_users=total_users,
-        total_sessions=total_sessions,
-        total_messages=total_messages
-    )
+    summary = AnalyticsService.get_summary(db) #db is passed as an argument to the service method
+    return AnalyticsSummary(**summary)# **summary is used to unpack the dictionary returned by the service method and pass it to the Pydantic model
 
 
 # ROUTE TO GET SUMMARY OF THE LOGGED-IN USER (TOTAL SESSIONS, MESSAGES)
@@ -50,16 +37,8 @@ def get_my_summary(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Total sessions of the user
-    total_sessions = db.query(ChatSession).filter(ChatSession.user_id == current_user.id).count()
-
-    # Total messages of the user (join Message and ChatSession to filter by user_id), searches after combining the tables
-    total_messages = db.query(Message).join(ChatSession).filter(ChatSession.user_id == current_user.id).count()
-
-    return MyAnalyticsSummary(
-        total_sessions=total_sessions,
-        total_messages=total_messages
-    )
+    summary = AnalyticsService.get_my_summary(db, current_user) #db and current_user are passed as an argument to the service method
+    return MyAnalyticsSummary(**summary) 
 
 
 # ROUTE TO GET SUMMARY OF A SINGLE SESSION (TOTAL MESSAGES, USER MESSAGES, ASSISTANT MESSAGES)
@@ -81,14 +60,5 @@ def get_session_summary(
     if session.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
     
-        
-    total_messages = db.query(Message).filter(Message.session_id == session.id).count()
-    user_message = db.query(Message).filter(Message.session_id == session.id, Message.role == "user").count()
-    assistant_message = db.query(Message).filter(Message.session_id == session.id, Message.role == "assistant").count()
-
-    return SessionAnalyticsSummary(
-        session_title=session.title,
-        total_messages=total_messages,
-        user_messages=user_message,
-        assistant_messages=assistant_message
-    )
+    summary = AnalyticsService.get_session_summary(db, session) #db and session are passed as an argument to the service method
+    return SessionAnalyticsSummary(**summary)

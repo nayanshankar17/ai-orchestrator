@@ -20,3 +20,4 @@ class SessionAnalyticsSummary(BaseModel):
     total_messages: int
     user_messages: int
     assistant_messages: int
+    system_messages: int

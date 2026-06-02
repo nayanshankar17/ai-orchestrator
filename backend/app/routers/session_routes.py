@@ -1,3 +1,10 @@
+# we did not create separate service and repository layers for session management, as the logic is quite simple and straightforward, and 
+# can be handled directly in the router. The session management mainly involves creating sessions, adding messages to sessions, and 
+# retrieving sessions and their messages, which are basic CRUD operations that can be efficiently managed within the router itself without 
+# the need for additional abstraction layers. This approach helps to keep the codebase simpler and more maintainable, while still adhering 
+# to good design principles. However, if the session management logic becomes more complex in the future, we can always refactor it into 
+# separate service and repository layers as needed.
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select

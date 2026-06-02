@@ -1,5 +1,11 @@
 # THIS FILE IS USED TO IDENTIFY USERS SECURELY, this file acts as main.py for authentication part of the app
 
+# we did not create separate service and repository layers for authentication, as the logic is quite simple and straightforward, and can 
+# be handled directly in the router. The authentication mainly involves user registration, login, and fetching the current user, which are 
+# basic operations that can be efficiently managed within the router itself without the need for additional abstraction layers. This approach 
+# helps to keep the codebase simpler and more maintainable, while still adhering to good design principles. However, if the authentication
+#  logic becomes more complex in the future, we can always refactor it into separate service and repository layers as needed.
+
 # APIRouter helps organize authentication routes
 # Depends is used for dependency injection
 # Used for raising API errors
