@@ -26,7 +26,9 @@ from dotenv import load_dotenv
 from app.routers.auth_routes import router as auth_router
 from app.routers.session_routes import router as session_router
 from app.routers.analytics_routes import router as analytics_router
+from app.routers.preferences_routes import router as preferences_router
 from routers.orchestrator_routes import router as orchestrator_router
+
 
 # Load environment variables
 load_dotenv()
@@ -61,7 +63,7 @@ app.include_router(auth_router)
 app.include_router(session_router)
 app.include_router(analytics_router)
 app.include_router(orchestrator_router)
-
+app.include_router(preferences_router)
 
 # COMMAND TO RUN BACKEND:
 # python -m uvicorn main:app --reload

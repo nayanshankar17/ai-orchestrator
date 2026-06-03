@@ -40,3 +40,11 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan" #if user delted, all its sessions are also deleted
     )
+
+    # One user has one set of preferences
+    preferences = relationship(
+        "UserPreferences",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
