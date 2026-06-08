@@ -1,11 +1,10 @@
-import { useState , useRef } from "react";
+import { useState , useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 // these import re for markdown rendering, they maintain bold, italic, bullets etc
 import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter }
-from "react-syntax-highlighter";
-import { oneDark }
-from "react-syntax-highlighter/dist/esm/styles/prism";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 import "./dashboard.css";
 
@@ -37,6 +36,69 @@ function Dashboard() {
 
   //chat states
   const [chatHistory, setChatHistory] = useState([]);
+
+  // navigation hook from react-router-dom to navigate programmatically
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/", {replace: true }); // Navigate to login page and replace history to prevent going back
+  };
+
+  const [sessions, setSessions] = useState([]); // Store all chat sessions
+  const [activeSession, setActiveSession] = useState(null); // Store the currently active session to display its chat history and responses
+  const [showSessionModal, setShowSessionModal] = useState(false); // State to control the visibility of the session management modal
+  const [sessionTitle, setSessionTitle] = useState(""); // State to hold the title input when creating a new session or renaming an existing one
+
+  useEffect(() => {fetchSessions();}, []); // Fetch chat sessions on component mount
+
+  // Function to fetch chat sessions from the backend and store them in state
+  const fetchSessions = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("http://127.0.0.1:8000/session/list", //backend url for fetching chat sessions
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,// Include the access token in the Authorization header for authentication
+          },
+        }
+      );
+      const data = await response.json(); // Wait for the response and parse it as JSON
+      setSessions(data); // Store the fetched sessions in state
+    }
+    catch (error) {
+      console.log(error);
+    }
+  };
+
+  // Function to create a new chat session by calling the backend API and then refreshing the session list
+  const createSession = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch("http://127.0.0.1:8000/session/create",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: sessionTitle.trim(), // Send the session title from state, trimming whitespace
+          }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error(
+          "Failed to create session"
+        );
+      }
+      setSessionTitle(""); // Clear the session title input after creating the session
+      setShowSessionModal(false); // Close the session creation modal
+      await fetchSessions(); // Refresh the session list after creating a new session
+    }
+    catch (error) {
+      console.log(error);
+    }
+  };
 
   const toggleProvider = (provider) => {
 
@@ -341,24 +403,49 @@ function Dashboard() {
 
       {/* Sidebar - Chat History */}
       <div className={`sidebar ${isSidebarOpen ? "open" : ""}`}>
+        <button
+          onClick={() => setShowSessionModal(true)} // Open the session management modal to create a new chat session
+          className="generate-btn"
+          style={{
+            marginBottom: "15px",
+          }}
+        >
+          + New Chat
+        </button>
         <h2 className="sidebar-title">Chat History</h2>
-        {chatHistory.map((chat, index) => (
+        {sessions.map((session) => (
           <div
-            key={index}
-            onClick={() => {
-              setResponses(chat.responses);
-              setDisplayedResponses(chat.responses);
-              setIsSidebarOpen(false); // Auto-close drawer on mobile selection
-            }}
+            key={session.id}
             className="history-card"
+            onClick={() => {
+              setActiveSession(
+                session.id
+              );
+            }}
           >
             <p className="history-prompt-text">
-              {chat.prompt}
+              {session.title}
             </p>
           </div>
         ))}
       </div>
 
+      <button
+        onClick={handleLogout}
+        style={{
+          padding: "10px 16px",
+          border: "none",
+          borderRadius: "8px",
+          backgroundColor: "#dc2626",
+          color: "white",
+          cursor: "pointer",
+          fontWeight: "bold",
+        }}
+      >
+        Logout
+      </button>
+      <button onClick={() => navigate("/preferences")}>Preferences</button>
+      
       {/* Main Content Area */}
       <div className="main-content">
         {/* Desktop Header */}
@@ -474,6 +561,103 @@ function Dashboard() {
           ))}
         </div>
       </div>
+
+    {/* Session Modal */}
+    {
+      showSessionModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.6)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+
+          <div
+            style={{
+              backgroundColor: "#1e293b",
+              padding: "25px",
+              borderRadius: "12px",
+              width: "350px",
+            }}
+          >
+
+            <h2
+              style={{
+                color: "white",
+                marginBottom: "15px",
+              }}
+            >
+              Create New Session
+            </h2>
+
+            <input
+              type="text"
+              value={sessionTitle}
+              onChange={(e) =>
+                setSessionTitle(e.target.value)
+              }
+              placeholder="Enter session name"
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "8px",
+                border: "none",
+                marginBottom: "20px",
+              }}
+            />
+
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+              }}
+            >
+
+              <button
+                onClick={createSession}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  backgroundColor: "#2563eb",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+              >
+                Create
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowSessionModal(false);
+                  setSessionTitle("");
+                }}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  backgroundColor: "#475569",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+
     </div>
   );
 }
