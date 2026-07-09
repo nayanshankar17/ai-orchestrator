@@ -1,5 +1,5 @@
 # MODEL FOR CHAT SESSIONS DATABASE, MANY SESSIONS -> ONE USER
-# 
+
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, DateTime, ForeignKey

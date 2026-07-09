@@ -53,7 +53,6 @@ app.add_middleware(
 # HOME ROUTE
 @app.get("/")
 def home():
-
     return {
         "message": "AI Orchestrator Backend Running"
     }

@@ -37,6 +37,9 @@ function Dashboard() {
   //chat states
   const [chatHistory, setChatHistory] = useState([]);
 
+  // state to store the message of a particualr session in order tot display them 
+  const [messages, setMessages] = useState([]); 
+
   // navigation hook from react-router-dom to navigate programmatically
   const navigate = useNavigate();
   const handleLogout = () => {
@@ -69,6 +72,62 @@ function Dashboard() {
       console.log(error);
     }
   };
+
+
+  // function to fetch messages of a session from backend and strore them in a state
+  const loadSessionMessages = async (sessionId) => {
+
+    try {
+      
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(
+        `http://127.0.0.1:8000/session/${sessionId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to load messages");
+      }
+      const data = await response.json();
+      console.log(data); // display messages in console (for testing)
+      setMessages(data); // store the fetched data into the state
+    }
+    catch (error) {
+      console.log(error);
+    }
+  };
+
+
+  // function to save user and assistant messages into the backend database, so that they can be retrieved later
+  const saveMessage = async (role, content) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(
+        `http://127.0.0.1:8000/session/${activeSession}/message`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            role,
+            content,
+          }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to save message");
+      }
+    }
+    catch (error) {
+      console.log(error);
+    }
+  };
+
 
   // Function to create a new chat session by calling the backend API and then refreshing the session list
   const createSession = async () => {
@@ -124,52 +183,63 @@ function Dashboard() {
     },
   ];
 
+  // Function to send the user's prompt to the backend for processing and handle the responses from multiple providers
   const sendPrompt = async () => {
+
+    //if no prompt exists
     setLastPrompt(prompt);
     if (!prompt.trim()) {
       return;
     }
-
     setLoading(true);
 
     try {
 
+      // fetches the ai response from the backend
       const response = await fetch(
         "http://127.0.0.1:8000/orchestrate",
         // "https://ai-orchestrator-i4w5.onrender.com/orchestrate",
-        
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
-
             prompt: prompt,
-
             providers:
-              selectedProviders.length > 0
-                ? selectedProviders.map(
-                    (provider) => provider.toLowerCase()
-                  )
-                : [],
+              selectedProviders.length > 0 ? selectedProviders.map((provider) => provider.toLowerCase()) : [],
           }),
-
         }
       );
 
+      
       const data = await response.json();
 
       setResponses(data.responses);
-
+     
       setDisplayedResponses(
         data.responses.map((item) => ({
           ...item,
           response: "",
         }))
       );
+
+
+      // Save the user's prompt message to the db for the active session
+      await saveMessage(
+          "user",
+          prompt
+      );
+
+
+      // save the ai's response to the db for the active session
+      for (const item of data.responses) {
+        await saveMessage(
+          "assistant",
+          item.response
+        );
+      }
+
 
       animateResponses(data.responses);
       
@@ -418,9 +488,8 @@ function Dashboard() {
             key={session.id}
             className="history-card"
             onClick={() => {
-              setActiveSession(
-                session.id
-              );
+              setActiveSession(session.id);
+              loadSessionMessages(session.id);
             }}
           >
             <p className="history-prompt-text">
