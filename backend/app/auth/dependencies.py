@@ -1,7 +1,7 @@
 # USED TO EXTRACT THE DETAILS OF CURRENT LOGGED_IN USER
 
 # Used for dependency injection
-from fastapi import Depends 
+from fastapi import Depends, HTTPException 
 
 # Helps extract Bearer token from Authorization header
 from fastapi.security import OAuth2PasswordBearer
@@ -42,8 +42,12 @@ def get_current_user(
         
 
     # Handle invalid JWT tokens
-    except:
-        JWTError
+    except JWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+        )
+        return None
     
     # query database for user
     statement = select(User).where(User.id == user_id)
@@ -53,5 +57,11 @@ def get_current_user(
 
     # Extract actual User object
     user = result.scalar_one_or_none()
+
+    if user_id is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token",
+        )
 
     return user

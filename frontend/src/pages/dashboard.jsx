@@ -34,9 +34,6 @@ function Dashboard() {
   // Store selected providers for smart routing
   const [selectedProviders, setSelectedProviders] = useState([]);
 
-  //chat states
-  const [chatHistory, setChatHistory] = useState([]);
-
   // state to store the message of a particualr session in order tot display them 
   const [messages, setMessages] = useState([]); 
 
@@ -65,6 +62,12 @@ function Dashboard() {
           },
         }
       );
+
+      // Check if the response is successful, if not throw an error
+      if (!response.ok) {
+        throw new Error("Failed to fetch sessions");
+      }
+      
       const data = await response.json(); // Wait for the response and parse it as JSON
       setSessions(data); // Store the fetched sessions in state
     }
@@ -226,10 +229,7 @@ function Dashboard() {
 
 
       // Save the user's prompt message to the db for the active session
-      await saveMessage(
-          "user",
-          prompt
-      );
+      await saveMessage("user", prompt);
 
 
       // save the ai's response to the db for the active session
@@ -240,18 +240,10 @@ function Dashboard() {
         );
       }
 
+      await loadSessionMessages(activeSession); // Refresh the messages for the active session after saving the new messages
 
-      animateResponses(data.responses);
+      animateResponses(data.responses); // Trigger the typing animation for the responses from all providers
       
-      // chats added as stack LIFO
-      setChatHistory((prev) => [
-        {
-          prompt: prompt,
-          responses: data.responses,
-        },
-        ...prev,
-      ]);
-
     }
 
     catch (error) {
@@ -274,14 +266,10 @@ function Dashboard() {
     setLoading(false);
   };
   
+  // Function to animate the typing effect for each provider's response
   const animateResponses = (responsesData) => {
-
-    animationIntervals.current.forEach(
-      clearInterval
-    );
-
-    animationIntervals.current = [];
-
+    animationIntervals.current.forEach(clearInterval); // Clear any existing intervals to prevent overlapping animations
+    animationIntervals.current = []; // Reset the intervals array for the new animations
     responsesData.forEach((item, index) => {
 
       let currentText = "";
@@ -319,29 +307,26 @@ function Dashboard() {
       animationIntervals.current.push(interval);
     });
   };
-  const getStatusColor = (status) => {
 
+  // Function to determine the color of the status indicator based on the response status
+  const getStatusColor = (status) => {
     if (status === "success") {
       return "#22c55e";
     }
-
     if (status === "error") {
       return "#ef4444";
     }
-
     return "#facc15";
   };
 
+
+  // Function to copy a provider's response to the clipboard and alert the user upon success or log an error if it fails
   const copyResponse = async (text) => {
-
     try {
-
       await navigator.clipboard.writeText(text);
-
       alert("Response copied successfully!");
 
     } catch (error) {
-
       console.log(error);
     }
   };
@@ -554,13 +539,81 @@ function Dashboard() {
           <div className="action-bar">
             <button
               onClick={sendPrompt}
-              disabled={loading || !prompt.trim()}
+              disabled={
+                loading ||
+                !prompt.trim() || 
+                !activeSession
+              }
               className="generate-btn"
             >
-              {loading ? "Generating..." : "Generate Responses"}
+              {
+                !activeSession
+                  ? "Select a Session"
+                  : loading
+                  ? "Generating..."
+                  : "Generate Responses"
+    }
             </button>
           </div>
         </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div style={{ marginBottom: "30px" }}>
+
+  {messages.map((message) => (
+
+    <div
+      key={message.id}
+      style={{
+        background:
+          message.role === "user"
+            ? "#1e3a8a"
+            : "#1e293b",
+        color: "white",
+        padding: "15px",
+        borderRadius: "10px",
+        marginBottom: "12px",
+      }}
+    >
+
+      <strong>
+        {message.role === "user"
+          ? "You"
+          : "Assistant"}
+      </strong>
+
+      <p>{message.content}</p>
+
+    </div>
+
+  ))}
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         {/* Response Grid */}
         <div className="response-grid">
