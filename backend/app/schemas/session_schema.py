@@ -32,12 +32,20 @@ class sessionResponse(BaseModel):
 
 class messageCreate(BaseModel):
     role: MessageRole
+    provider: str | None = None
     content: str
+    latency: float | None = None
+    token_count: int | None = None
+    status: str | None = None
 
 class messageResponse(BaseModel):
     id: UUID
     role: MessageRole
+    provider: str | None = None
     content: str
-    created_at: datetime    
-    class config:
-        from_attributes= True
+    latency: float | None = None
+    token_count: int | None = None
+    status: str | None = None
+    created_at: datetime
+    class Config:
+        from_attributes = True

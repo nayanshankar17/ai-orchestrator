@@ -16,8 +16,10 @@ import uuid
 from datetime import datetime
 from sqlalchemy import (
     Column,
+    Integer,
     String,
     Text,
+    Float,
     DateTime,
     ForeignKey
 )
@@ -65,6 +67,29 @@ class Message(Base):
         default=datetime.utcnow
     )
 
+    # AI provider (Gemini, Groq, GPT...)
+    provider = Column(
+        String,
+        nullable=True      # NULL for user messages
+    )
+
+    # Response time in seconds
+    latency = Column(
+        Float,
+        nullable=True
+    )
+
+    # Number of tokens used
+    token_count = Column(
+        Integer,
+        nullable=True
+    )
+
+    # success / failed
+    status = Column(
+        String,
+        nullable=True
+    )
 
     # Message belongs to one session
     session = relationship(

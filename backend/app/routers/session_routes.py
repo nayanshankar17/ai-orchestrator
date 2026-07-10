@@ -98,11 +98,14 @@ def add_message(
     
     #create new message
     new_message = Message(
-        session_id = session.id,
-        role = message_data.role,
-        content = message_data.content,
-    ) 
-
+        session_id=session.id,
+        role=message_data.role,
+        provider=message_data.provider,
+        content=message_data.content,
+        latency=message_data.latency,
+        token_count=message_data.token_count,
+        status=message_data.status,
+    )
     db.add(new_message) # Add new message to session
     db.commit() #save it permanently
     db.refresh(new_message) # Refresh object from PostgreSQL

@@ -67,7 +67,7 @@ function Dashboard() {
       if (!response.ok) {
         throw new Error("Failed to fetch sessions");
       }
-      
+
       const data = await response.json(); // Wait for the response and parse it as JSON
       setSessions(data); // Store the fetched sessions in state
     }
@@ -105,7 +105,13 @@ function Dashboard() {
 
 
   // function to save user and assistant messages into the backend database, so that they can be retrieved later
-  const saveMessage = async (role, content) => {
+  const saveMessage = async (
+  role,
+  provider,
+  content,
+  latency,
+  tokenCount,
+  status) => {
     try {
       const token = localStorage.getItem("access_token");
       const response = await fetch(
@@ -118,7 +124,11 @@ function Dashboard() {
           },
           body: JSON.stringify({
             role,
+            provider,
             content,
+            latency,
+            token_count: tokenCount,
+            status,
           }),
         }
       );
@@ -229,14 +239,25 @@ function Dashboard() {
 
 
       // Save the user's prompt message to the db for the active session
-      await saveMessage("user", prompt);
+      await saveMessage(
+          "user",
+          null,
+          prompt,
+          null,
+          null,
+          null
+      );
 
 
       // save the ai's response to the db for the active session
       for (const item of data.responses) {
         await saveMessage(
-          "assistant",
-          item.response
+            "assistant",
+            item.provider,
+            item.response,
+            parseFloat(item.latency),
+            item.token_count,
+            item.status
         );
       }
 
@@ -503,12 +524,12 @@ function Dashboard() {
       {/* Main Content Area */}
       <div className="main-content">
         {/* Desktop Header */}
-        <div className="header-container">
+        {/* <div className="header-container">
           <h1 className="header-title">AI Orchestrator</h1>
           <p className="header-subtitle">
             Compare responses from multiple AI models side-by-side.
           </p>
-        </div>
+        </div> */}
 
         {/* Prompt Console */}
         <div className="prompt-container">
@@ -552,136 +573,134 @@ function Dashboard() {
                   : loading
                   ? "Generating..."
                   : "Generate Responses"
-    }
+              }
             </button>
           </div>
         </div>
 
+        {/* Messages Display */}
+        <div style={{ marginBottom: "30px" }}>
 
+          {messages.map((message) => (
 
+            <div
+              key={message.id}
+              style={{
+                background:
+                  message.role === "user"
+                    ? "#1e3a8a"
+                    : "#1e293b",
+                color: "white",
+                padding: "15px",
+                borderRadius: "10px",
+                marginBottom: "12px",
+              }}
+            >
 
+              <strong>
+                {message.role === "user"
+                  ? "You"
+                  : "Assistant"}
+              </strong>
 
+              <p>{message.content}</p>
 
-
-
-
-
-
-
-
-<div style={{ marginBottom: "30px" }}>
-
-  {messages.map((message) => (
-
-    <div
-      key={message.id}
-      style={{
-        background:
-          message.role === "user"
-            ? "#1e3a8a"
-            : "#1e293b",
-        color: "white",
-        padding: "15px",
-        borderRadius: "10px",
-        marginBottom: "12px",
-      }}
-    >
-
-      <strong>
-        {message.role === "user"
-          ? "You"
-          : "Assistant"}
-      </strong>
-
-      <p>{message.content}</p>
-
-    </div>
-
-  ))}
-
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        {/* Response Grid */}
-        <div className="response-grid">
-          {displayedResponses.map((item, index) => (
-            <div key={index} className="response-card">
-              {/* Card Top Section */}
-              <div className="card-header">
-                <div className="provider-info">
-                  <h2>{item.provider}</h2>
-                  <p className="provider-meta">Latency: {item.latency}</p>
-                  <p className="provider-meta">Tokens: {item.token_count}</p>
-                </div>
-
-                {/* Status Badge */}
-                <div className="status-indicator">
-                  <div
-                    className="status-dot"
-                    style={{ backgroundColor: getStatusColor(item.status) }}
-                  />
-                  <span>{item.status}</span>
-                </div>
-              </div>
-
-              {/* Response Markdown Area */}
-              <div className="response-area">
-                <ReactMarkdown
-                  components={{
-                    code(props) {
-                      const { children, className } = props;
-                      const match = /language-(\w+)/.exec(className || "");
-                      return match ? (
-                        <SyntaxHighlighter
-                          style={oneDark}
-                          language={match[1]}
-                          PreTag="div"
-                        >
-                          {String(children).replace(/\n$/, "")}
-                        </SyntaxHighlighter>
-                      ) : (
-                        <code className={className}>{children}</code>
-                      );
-                    },
-                  }}
-                >
-                  {item.response}
-                </ReactMarkdown>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="card-footer-actions">
-                <button
-                  onClick={() => copyResponse(item.response)}
-                  className="card-action-btn"
-                >
-                  Copy
-                </button>
-
-                <button
-                  onClick={() => regenerateResponse(item.provider)}
-                  className="card-action-btn"
-                  disabled={regeneratingProvider !== null}
-                >
-                  {regeneratingProvider === item.provider ? "Regenerating..." : "Regenerate"}
-                </button>
-              </div>
             </div>
+
           ))}
+
         </div>
+
+        {/* Responses Display */}
+        <div className="chat-window">
+
+            {messages.map((message) => (
+
+                <div
+                    key={message.id}
+                    className={
+                        message.role === "user"
+                            ? "user-container"
+                            : "assistant-container"
+                    }
+                >
+
+                    <div className="message-author">
+
+                        {
+                            message.role === "user"
+                                ? "You"
+                                : `🤖 ${message.provider}`
+                        }
+
+                    </div>
+
+                    <div className="message-body">
+
+                        <ReactMarkdown
+                            components={{
+                                code(props) {
+                                    const { children, className } = props;
+
+                                    const match =
+                                        /language-(\w+)/.exec(className || "");
+
+                                    return match ? (
+
+                                        <SyntaxHighlighter
+                                            style={oneDark}
+                                            language={match[1]}
+                                            PreTag="div"
+                                        >
+                                            {String(children).replace(/\n$/, "")}
+                                        </SyntaxHighlighter>
+
+                                    ) : (
+
+                                        <code className={className}>
+                                            {children}
+                                        </code>
+
+                                    );
+                                },
+                            }}
+                        >
+                            {message.content}
+                        </ReactMarkdown>
+
+                    </div>
+
+                    {
+                        message.role === "assistant" && (
+
+                            <div className="message-meta">
+
+                                ⏱ {message.latency}s
+
+                                •
+
+                                🪙 {message.token_count} tokens
+
+                                •
+
+                                {
+                                    message.status === "success"
+                                        ? "🟢 Success"
+                                        : "🔴 Failed"
+                                }
+
+                            </div>
+
+                        )
+                    }
+
+                </div>
+
+            ))}
+
+        </div>
+
+
       </div>
 
     {/* Session Modal */}
