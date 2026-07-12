@@ -4,11 +4,11 @@
 # be handled directly in the router. The authentication mainly involves user registration, login, and fetching the current user, which are 
 # basic operations that can be efficiently managed within the router itself without the need for additional abstraction layers. This approach 
 # helps to keep the codebase simpler and more maintainable, while still adhering to good design principles. However, if the authentication
-#  logic becomes more complex in the future, we can always refactor it into separate service and repository layers as needed.
+# logic becomes more complex in the future, we can always refactor it into separate service and repository layers as needed.
 
 # APIRouter helps organize authentication routes
 # Depends is used for dependency injection
-# Used for raising API errors
+# HTTPException is used for raising API errors
 from fastapi import APIRouter, Depends, HTTPException
 
 from fastapi.security import OAuth2PasswordRequestForm
@@ -28,8 +28,9 @@ from app.auth.hashing import hash_password, verify_password
 from app.auth.jwt_handler import create_access_token
 from app.schemas.user_schema import UserCreate, UserLogin
 from app.auth.dependencies import get_current_user
+from app.models.user_preference import UserPreferences
 
-#create authentication router, latera used to identify login endpoints in dependencies.py (eg: /auth/login.. )
+#create authentication router, later used to identify login endpoints in dependencies.py (eg: /auth/login.. )
 router = APIRouter(
     prefix="/auth", # All auth routes start with /auth, prefix are addded to for cleuvicorn main:app --reloadaner APIs, for (eg: /chat/.. , /auth/.. ..etc)
     tags=["Authentication"], # Group name in Swagger UI
@@ -62,8 +63,18 @@ def register_user(
     )
 
     db.add(new_user) #add new_user object to database session
-    db.commit() # save new_user permanently
+    db.flush()  # Flush sends the INSERT to PostgreSQL without committing. This generates the UUID so we can use it immediately.
+    
+    # Create default user preferences for the new user
+    new_preferences = UserPreferences(
+        user_id=new_user.id
+    )
+    db.add(new_preferences) # add new_preferences object to database session
+
+    db.commit() # save new_user with its preferences permanently
     db.refresh(new_user) # refresh object from database
+    db.refresh(new_preferences)
+
     return{
         "message": "user registered successfully."
     } 

@@ -1,3 +1,21 @@
+// AI
+// - Default Provider
+// - Default Model
+
+// Chat
+// - Auto Scroll
+// - Typewriter Animation
+// - Show Analytics
+
+// Appearance
+// - Theme
+// - Font Size
+
+// Future
+// - Streaming
+
+
+
 import { useState } from "react";
 
 export default function Preferences() {

@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from sqlalchemy.orm import relationship
+from datetime import datetime
 
 from app.database.db import Base
 
@@ -23,7 +24,8 @@ class UserPreferences(Base):
 
     preferred_provider = Column(
         String,
-        nullable=True
+        nullable=False,
+        default="groq"
     )
 
     preferred_model = Column(
@@ -31,11 +33,57 @@ class UserPreferences(Base):
         nullable=True
     )
 
-    preferred_style = Column(
+    response_style = Column(
         String,
-        nullable=True
+        nullable=False,
+        default="balanced"
+    )
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow
     )
 
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
+
+    temperature = Column(
+        Float,
+        default=0.7,
+        nullable=False
+    )
+
+    max_tokens = Column(
+        Integer,
+        default=1024,
+        nullable=False
+    )
+
+    auto_scroll = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    typewriter_animation = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    show_analytics = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    theme = Column(
+        String,
+        default="dark",
+        nullable=False
+    )
 
     # Relationship to User model
     user = relationship(

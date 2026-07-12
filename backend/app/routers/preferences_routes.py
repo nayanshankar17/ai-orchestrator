@@ -24,9 +24,9 @@ def get_preferences(
     db: Session = Depends(get_db)
 ):
     statement = select(UserPreferences).where(UserPreferences.user_id == current_user.id)
-    result = db.execute(statement).scalar_one_or_none()
+    [Preferences] = db.execute(statement).scalar_one_or_none()
 
-    if not result:
+    if not Preferences:
         # If no preferences found, return default empty preferences
         return PreferencesResponse(
             preferred_provider=None,
@@ -34,8 +34,7 @@ def get_preferences(
             preferred_style=None
         )
 
-    return result
-
+    return Preferences
 
 
 # Route to update or create user preferences
@@ -52,20 +51,32 @@ def update_preferences(
     user_preferences = db.execute(statement).scalar_one_or_none()
 
     # Create new preferences if they don't exist
-    if not user_preferences:
-        user_preferences = UserPreferences(
-            user_id=current_user.id,
-            preferred_provider=preference_data.preferred_provider,
-            preferred_model=preference_data.preferred_model,
-            preferred_style=preference_data.preferred_style
+    if user_preferences is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Preferences not found."
         )
-        db.add(user_preferences)
 
     # Update existing preferences
     else:
+        
         user_preferences.preferred_provider = preference_data.preferred_provider
         user_preferences.preferred_model = preference_data.preferred_model
-        user_preferences.preferred_style = preference_data.preferred_style
+        user_preferences.response_style = preference_data.response_style
+
+        user_preferences.temperature = preference_data.temperature
+        user_preferences.max_tokens = preference_data.max_tokens
+
+        user_preferences.auto_scroll = preference_data.auto_scroll
+        user_preferences.typewriter_animation = preference_data.typewriter_animation
+        user_preferences.show_analytics = preference_data.show_analytics
+        user_preferences.render_markdown = preference_data.render_markdown
+        user_preferences.code_highlighting = preference_data.code_highlighting
+
+        user_preferences.theme = preference_data.theme
+        user_preferences.font_size = preference_data.font_size
+        user_preferences.compact_mode = preference_data.compact_mode
+        user_preferences.sidebar_collapsed = preference_data.sidebar_collapsed
 
     db.commit()
     db.refresh(user_preferences)

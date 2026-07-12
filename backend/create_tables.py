@@ -1,3 +1,6 @@
+# This script is for development/testing only.
+# Database schema should be managed using Alembic migrations.
+
 from app.database.db import engine, Base
 from app.models.user import User
 
