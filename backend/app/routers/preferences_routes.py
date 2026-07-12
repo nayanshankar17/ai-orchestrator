@@ -23,18 +23,19 @@ def get_preferences(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Fetch preferences of the currently logged-in user
     statement = select(UserPreferences).where(UserPreferences.user_id == current_user.id)
-    [Preferences] = db.execute(statement).scalar_one_or_none()
 
-    if not Preferences:
-        # If no preferences found, return default empty preferences
-        return PreferencesResponse(
-            preferred_provider=None,
-            preferred_model=None,
-            preferred_style=None
+    user_preferences = db.execute(statement).scalar_one_or_none() # Fetch the first result or return None if no preferences are found
+
+    # This should rarely happen because preferences are created during registration
+    if user_preferences is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Preferences not found."
         )
 
-    return Preferences
+    return user_preferences
 
 
 # Route to update or create user preferences
@@ -58,25 +59,24 @@ def update_preferences(
         )
 
     # Update existing preferences
-    else:
-        
-        user_preferences.preferred_provider = preference_data.preferred_provider
-        user_preferences.preferred_model = preference_data.preferred_model
-        user_preferences.response_style = preference_data.response_style
 
-        user_preferences.temperature = preference_data.temperature
-        user_preferences.max_tokens = preference_data.max_tokens
+    user_preferences.preferred_provider = preference_data.preferred_provider
+    user_preferences.preferred_model = preference_data.preferred_model
+    user_preferences.response_style = preference_data.response_style
 
-        user_preferences.auto_scroll = preference_data.auto_scroll
-        user_preferences.typewriter_animation = preference_data.typewriter_animation
-        user_preferences.show_analytics = preference_data.show_analytics
-        user_preferences.render_markdown = preference_data.render_markdown
-        user_preferences.code_highlighting = preference_data.code_highlighting
+    user_preferences.temperature = preference_data.temperature
+    user_preferences.max_tokens = preference_data.max_tokens
 
-        user_preferences.theme = preference_data.theme
-        user_preferences.font_size = preference_data.font_size
-        user_preferences.compact_mode = preference_data.compact_mode
-        user_preferences.sidebar_collapsed = preference_data.sidebar_collapsed
+    user_preferences.auto_scroll = preference_data.auto_scroll
+    user_preferences.typewriter_animation = preference_data.typewriter_animation
+    user_preferences.show_analytics = preference_data.show_analytics
+    user_preferences.render_markdown = preference_data.render_markdown
+    user_preferences.code_highlighting = preference_data.code_highlighting
+
+    user_preferences.theme = preference_data.theme
+    user_preferences.font_size = preference_data.font_size
+    user_preferences.compact_mode = preference_data.compact_mode
+    user_preferences.sidebar_collapsed = preference_data.sidebar_collapsed
 
     db.commit()
     db.refresh(user_preferences)

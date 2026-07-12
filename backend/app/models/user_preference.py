@@ -85,6 +85,36 @@ class UserPreferences(Base):
         nullable=False
     )
 
+    render_markdown = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    code_highlighting = Column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    font_size = Column(
+        Integer,
+        default=16,
+        nullable=False
+    )
+
+    compact_mode = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
+    sidebar_collapsed = Column(
+        Boolean,
+        default=False,
+        nullable=False
+    )
+
     # Relationship to User model
     user = relationship(
         "User",
