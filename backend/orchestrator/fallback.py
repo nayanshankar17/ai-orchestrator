@@ -6,7 +6,6 @@ from orchestrator.logger import (
     log_warning
 )
 
-
 def execute_with_fallback(provider, history):
 
     try:

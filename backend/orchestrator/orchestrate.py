@@ -62,7 +62,7 @@ async def run_orchestration(user_prompt,selected_providers):
 
         for result in results:
 
-            if isinstance(result,Exception):
+            if isinstance(result,Exception): # if any provider fails, we catch the exception and return a generic error response for that provider
 
                 responses.append({
                     "provider": "unknown",

@@ -6,6 +6,9 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
+// 
+import PreferencesModal from "C:/Users/Nayan Shankar/Desktop/ai-orchestrator/frontend/src/components/PreferencesModel.jsx";
+
 function Dashboard() {  
 
   // Store the current prompt input by the user
@@ -35,6 +38,9 @@ function Dashboard() {
 
   // state to store the message of a particualr session in order tot display them 
   const [messages, setMessages] = useState([]); 
+
+  // State to control the visibility of the preferences modal
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
 
   // navigation hook from react-router-dom to navigate programmatically
   const navigate = useNavigate();
@@ -920,7 +926,7 @@ function Dashboard() {
         </div>
         <div style={styles.sidebarBottom}>
           <button 
-            onClick={() => navigate("/preferences")}
+            onClick={() => setShowPreferencesModal(true)}
             onMouseEnter={() => setHoveredPreferences(true)}
             onMouseLeave={() => setHoveredPreferences(false)}
             style={styles.preferencesBtn(hoveredPreferences)}
@@ -1185,6 +1191,13 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      <PreferencesModal
+        open={showPreferencesModal}
+        onClose={() => setShowPreferencesModal(false)}
+      />
+
+
     </div>
   );
 }
