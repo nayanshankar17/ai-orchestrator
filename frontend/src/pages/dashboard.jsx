@@ -7,7 +7,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // 
-import PreferencesModal from "C:/Users/Nayan Shankar/Desktop/ai-orchestrator/frontend/src/components/PreferencesModel.jsx";
+import PreferencesModal from "C:/Users/Nayan Shankar/Desktop/ai-orchestrator/frontend/src/components/PreferencesModal.jsx";
 
 function Dashboard() {  
 
@@ -869,7 +869,7 @@ function Dashboard() {
     }
   };
 
-
+  
   return (
     <div style={styles.appContainer}>
       {/* Mobile Topbar */}
@@ -926,7 +926,10 @@ function Dashboard() {
         </div>
         <div style={styles.sidebarBottom}>
           <button 
-            onClick={() => setShowPreferencesModal(true)}
+            onClick={() => {
+              console.log("Opening modal");
+              setShowPreferencesModal(true);
+            }}
             onMouseEnter={() => setHoveredPreferences(true)}
             onMouseLeave={() => setHoveredPreferences(false)}
             style={styles.preferencesBtn(hoveredPreferences)}
@@ -1192,10 +1195,12 @@ function Dashboard() {
         </div>
       )}
 
-      <PreferencesModal
-        open={showPreferencesModal}
-        onClose={() => setShowPreferencesModal(false)}
-      />
+      {/* Preferences Modal */}
+      {showPreferencesModal && (
+          <PreferencesModal
+              onClose={() => setShowPreferencesModal(false)}
+          />
+      )}
 
 
     </div>
