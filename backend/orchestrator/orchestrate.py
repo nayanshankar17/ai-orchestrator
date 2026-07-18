@@ -1,31 +1,35 @@
-#Orchestrator
+# Orchestrator
 from orchestrator.router import choose_provider
 from orchestrator.fallback import execute_with_fallback
-from orchestrator.memory import add_message, get_history
-from orchestrator.cache import get_cached_response,cache_response
+from orchestrator.cache import get_cached_response, cache_response
 from orchestrator.logger import log_info
 
-#this is used to shift from sequesntial_execution(gemini -> groq ->...) to parallel_ execution(gemini + groq +...)
+# this is used to shift from sequential_execution(gemini -> groq ->...) to parallel_execution(gemini + groq +...)
 import asyncio
 
 # ASYNC PROVIDER WRAPPER
-async def run_provider(provider,history):
-    return execute_with_fallback(provider,history)
+async def run_provider(provider, history, user=None):
+    return execute_with_fallback(provider, history, user)
 
 
 # MAIN ORCHESTRATION LOGIC
-async def run_orchestration(user_prompt,selected_providers):
+async def run_orchestration(user_prompt, selected_providers, user=None, history=None):
 
-    log_info(f"New prompt received: {user_prompt}" ) #eg: [INFO] 2026-05-22 Prompt received: hello
+    log_info(f"New prompt received: {user_prompt}")
     
-    add_message("user",user_prompt) #maintains the history in memomry.py
+    if history is None:
+        history = []
+        
+    history.append({
+        "role": "user",
+        "content": user_prompt
+    })
 
     responses = [] # Store all provider responses
 
-
     # SMART MODE: If no providers selected, backend intelligently chooses one
     if len(selected_providers) == 0:
-        provider = choose_provider(user_prompt) #router.py
+        provider = choose_provider(user_prompt, user) # router.py
 
         cached = get_cached_response(user_prompt, provider)
         if cached:
@@ -34,21 +38,22 @@ async def run_orchestration(user_prompt,selected_providers):
                 "cached": True,
             }
 
-        response = execute_with_fallback(provider,get_history()) #fallback.py
+        response = execute_with_fallback(provider, history, user) # fallback.py
 
-        responses.append(response) #add the latest response to the responses list
+        responses.append(response) # add the latest response to the responses list
 
-        cache_response(user_prompt,provider, response) #update the cache.py dictionary
+        cache_response(user_prompt, provider, response) # update the cache.py dictionary
 
-        add_message("assistant", response["response"]) # update the memory.py list for maintaining the conversation
+        history.append({
+            "role": "assistant",
+            "content": response["response"]
+        })
 
     # MULTI PROVIDER MODE, ASYNC PROVIDER WRAPPER is used here (async def run_provider): parallel execution
     else:
 
         tasks = [
-
-            run_provider(provider,get_history()) #parallel execution
-
+            run_provider(provider, history, user) # parallel execution
             for provider in selected_providers
         ]
 
@@ -61,22 +66,22 @@ async def run_orchestration(user_prompt,selected_providers):
         )
 
         for result in results:
-
-            if isinstance(result,Exception): # if any provider fails, we catch the exception and return a generic error response for that provider
-
+            if isinstance(result, Exception): # if any provider fails, we catch the exception and return a generic error response for that provider
                 responses.append({
                     "provider": "unknown",
                     "latency": "--",
                     "response": "Provider unavailable. Please try again.",
                     "status": "error",
                 })
-
             else:
-
                 responses.append(result)
-                add_message("assistant",result["response"])
-    # Return all responses
+                history.append({
+                    "role": "assistant",
+                    "content": result["response"]
+                })
+
+    # Return all responses and session history
     return {
         "responses": responses,
-        "history": get_history()
+        "history": history
     }

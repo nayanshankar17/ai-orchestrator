@@ -2,7 +2,7 @@
 #For example, if the prompt contains coding-related keywords, we can route it to Groq, while if 
 #it contains creative writing keywords, we can route it to Gemini.
 
-def choose_provider(prompt: str):
+def choose_provider(prompt: str, user=None):
 
     prompt = prompt.lower()
 
@@ -27,5 +27,8 @@ def choose_provider(prompt: str):
 
     elif any(word in prompt for word in creative_keywords):
         return "gemini"
+
+    if user and user.preferences and user.preferences.preferred_provider:
+        return user.preferences.preferred_provider
 
     return "groq" # default provider

@@ -11,14 +11,25 @@ client = Groq(
     api_key=os.getenv("GROQ_API_KEY") # Access the Groq API key from environment variables.
 )
 
-def generate_groq_response(history):
+def generate_groq_response(history, user=None):
 
     log_info("Sending request to Groq")
 
     start_time = start_timer() # Start timer to measure latency for Groq API call.
 
+    # Default parameters
+    model = "llama-3.3-70b-versatile"
+    temperature = 0.7
+    max_tokens = 400
+
+    if user and user.preferences:
+        temperature = user.preferences.temperature
+        max_tokens = user.preferences.max_tokens
+        if user.preferences.preferred_provider == "groq" and user.preferences.preferred_model:
+            model = user.preferences.preferred_model
+
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model=model,
 
         messages= [
                     {
@@ -36,7 +47,8 @@ def generate_groq_response(history):
             }
         ] + history, # Pass the conversation history to the Groq API for context-aware response generation
 
-        max_tokens=400, # for token optimization.
+        temperature=temperature,
+        max_tokens=max_tokens, # for token optimization.
     )
 
     # Groq works in openAI format, so we can maintain the convesrsation history in form of array

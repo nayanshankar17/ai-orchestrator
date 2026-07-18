@@ -42,6 +42,52 @@ function Dashboard() {
   // State to control the visibility of the preferences modal
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
 
+  const [preferences, setPreferences] = useState({
+    preferred_provider: "groq",
+    preferred_model: null,
+    response_style: "balanced",
+    temperature: 0.7,
+    max_tokens: 1024,
+    auto_scroll: true,
+    typewriter_animation: true,
+    show_analytics: true,
+    render_markdown: true,
+    code_highlighting: true,
+    theme: "dark",
+    font_size: 16,
+    compact_mode: false,
+    sidebar_collapsed: false,
+  });
+
+  const fetchPreferences = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+      
+      const response = await fetch("http://127.0.0.1:8000/preferences", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch preferences");
+      }
+
+      const data = await response.json();
+      setPreferences(data);
+
+      if (data.preferred_provider) {
+        const providerName = data.preferred_provider.charAt(0).toUpperCase() + data.preferred_provider.slice(1);
+        setSelectedProviders([providerName]);
+      }
+      
+      setIsSidebarOpen(!data.sidebar_collapsed);
+    } catch (error) {
+      console.error("Error loading preferences:", error);
+    }
+  };
+
   // navigation hook from react-router-dom to navigate programmatically
   const navigate = useNavigate();
   const handleLogout = () => {
@@ -75,24 +121,52 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, activeSession]);
+    if (preferences?.auto_scroll !== false) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, activeSession, preferences?.auto_scroll]);
+
+  const isLight = preferences?.theme === "light";
+  const baseFontSize = preferences?.font_size || 16;
+  const isCompact = preferences?.compact_mode;
+
+  const colors = {
+    bgApp: isLight ? "#f9fafb" : "#212121",
+    textApp: isLight ? "#111827" : "#ececec",
+    bgSidebar: isLight ? "#f3f4f6" : "#171717",
+    borderSidebar: isLight ? "1px solid #e5e7eb" : "1px solid #2f2f2f",
+    bgMain: isLight ? "#ffffff" : "#212121",
+    bgInputOuter: isLight ? "linear-gradient(180deg, rgba(255,255,255,0) 0%, #ffffff 40%)" : "linear-gradient(180deg, rgba(33,33,33,0) 0%, #212121 40%)",
+    bgInputContainer: isLight ? "#f3f4f6" : "#2f2f2f",
+    borderInputContainer: isLight ? (isTextareaFocused ? "1px solid #9ca3af" : "1px solid #d1d5db") : (isTextareaFocused ? "1px solid #676767" : "1px solid #424242"),
+    textInput: isLight ? "#111827" : "white",
+    sendBtnBg: isLight ? (loading || !prompt.trim() || !activeSession ? "transparent" : "#2563eb") : (loading || !prompt.trim() || !activeSession ? "transparent" : "#ffffff"),
+    sendBtnColor: isLight ? (loading || !prompt.trim() || !activeSession ? "#9ca3af" : "#ffffff") : (loading || !prompt.trim() || !activeSession ? "#676767" : "#000000"),
+    assistantText: isLight ? "#374151" : "#ececec",
+    assistantMetaText: isLight ? "#6b7280" : "#b4b4b4",
+    historyCardActive: isLight ? "#e5e7eb" : "#2f2f2f",
+    historyCardHover: isLight ? "#f3f4f6" : "#212121",
+    btnHover: isLight ? "#e5e7eb" : "#2f2f2f",
+    btnText: isLight ? "#374151" : "white",
+    newChatBorder: isLight ? "#d1d5db" : "#424242",
+    newChatBg: isLight ? "#ffffff" : "transparent",
+  };
 
   const styles = {
     appContainer: {
       display: "flex",
       height: "100dvh",
       overflow: "hidden",
-      backgroundColor: "#212121",
-      color: "#ececec",
+      backgroundColor: colors.bgApp,
+      color: colors.textApp,
       fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       flexDirection: isMobile ? "column" : "row",
     },
     sidebar: {
       width: "260px",
       height: "100dvh",
-      backgroundColor: "#171717",
-      borderRight: "1px solid #2f2f2f",
+      backgroundColor: colors.bgSidebar,
+      borderRight: colors.borderSidebar,
       padding: "16px 12px 12px 12px",
       display: "flex",
       flexDirection: "column",
@@ -100,7 +174,14 @@ function Dashboard() {
       boxSizing: "border-box",
       flexShrink: 0,
       zIndex: 100,
-      transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      transition: "width 0.3s ease, padding 0.3s ease, opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+      ...(!isSidebarOpen && !isMobile ? {
+        width: "0px",
+        padding: "16px 0px",
+        opacity: 0,
+        overflow: "hidden",
+        borderRight: "none",
+      } : {}),
       ...(isMobile ? {
         position: "fixed",
         top: 0,
@@ -109,6 +190,8 @@ function Dashboard() {
         height: "100dvh",
         transform: isSidebarOpen ? "translateX(0)" : "translateX(-100%)",
         boxShadow: "10px 0 30px rgba(0, 0, 0, 0.6)",
+        width: "260px",
+        opacity: 1,
       } : {}),
     },
     sidebarOverlay: {
@@ -135,7 +218,7 @@ function Dashboard() {
       display: "flex",
       flexDirection: "column",
       gap: "8px",
-      borderTop: "1px solid #2f2f2f",
+      borderTop: `1px solid ${isLight ? "#e5e7eb" : "#2f2f2f"}`,
       paddingTop: "12px",
     },
     mainContent: {
@@ -143,7 +226,7 @@ function Dashboard() {
       height: "100dvh",
       display: "flex",
       flexDirection: "column",
-      backgroundColor: "#212121",
+      backgroundColor: colors.bgMain,
       overflow: "hidden",
       position: "relative",
     },
@@ -152,8 +235,8 @@ function Dashboard() {
       alignItems: "center",
       justifyContent: "space-between",
       padding: "12px 16px",
-      backgroundColor: "#171717",
-      borderBottom: "1px solid #2f2f2f",
+      backgroundColor: colors.bgSidebar,
+      borderBottom: colors.borderSidebar,
       position: "sticky",
       top: 0,
       zIndex: 50,
@@ -163,7 +246,7 @@ function Dashboard() {
     hamburgerBtn: {
       background: "none",
       border: "none",
-      color: "white",
+      color: colors.btnText,
       fontSize: "24px",
       cursor: "pointer",
       padding: "6px 12px",
@@ -172,20 +255,20 @@ function Dashboard() {
       justifyContent: "center",
       borderRadius: "8px",
       transition: "background-color 0.2s",
-      backgroundColor: hoveredHamburger ? "#2f2f2f" : "transparent",
+      backgroundColor: hoveredHamburger ? colors.btnHover : "transparent",
     },
     mobileTitle: {
       fontSize: "16px",
       fontWeight: 600,
       margin: 0,
-      color: "#ececec",
+      color: colors.textApp,
     },
     sidebarTitle: {
       marginTop: "8px",
       marginBottom: "8px",
       fontSize: "12px",
       fontWeight: 600,
-      color: "#676767",
+      color: isLight ? "#888" : "#676767",
       textTransform: "uppercase",
       letterSpacing: "0.5px",
     },
@@ -196,9 +279,9 @@ function Dashboard() {
       width: "100%",
       padding: "10px 16px",
       borderRadius: "8px",
-      border: "1px solid #424242",
-      backgroundColor: isHovered ? "#2f2f2f" : "transparent",
-      color: "white",
+      border: `1px solid ${colors.newChatBorder}`,
+      backgroundColor: isHovered ? colors.btnHover : colors.newChatBg,
+      color: colors.btnText,
       fontSize: "14px",
       fontWeight: 500,
       cursor: "pointer",
@@ -207,7 +290,7 @@ function Dashboard() {
     }),
     historyCard: (sessionId) => ({
       padding: "10px 12px",
-      backgroundColor: activeSession === sessionId ? "#2f2f2f" : (hoveredSessionId === sessionId ? "#212121" : "transparent"),
+      backgroundColor: activeSession === sessionId ? colors.historyCardActive : (hoveredSessionId === sessionId ? colors.historyCardHover : "transparent"),
       borderRadius: "8px",
       cursor: "pointer",
       display: "flex",
@@ -217,7 +300,7 @@ function Dashboard() {
     }),
     historyPromptText: {
       margin: 0,
-      color: "#ececec",
+      color: colors.textApp,
       fontSize: "13.5px",
       lineHeight: 1.4,
       overflow: "hidden",
@@ -228,8 +311,8 @@ function Dashboard() {
     preferencesBtn: (isHovered) => ({
       padding: "10px 12px",
       borderRadius: "8px",
-      backgroundColor: isHovered ? "#2f2f2f" : "transparent",
-      color: "white",
+      backgroundColor: isHovered ? colors.btnHover : "transparent",
+      color: colors.btnText,
       border: "none",
       cursor: "pointer",
       fontWeight: 500,
@@ -244,8 +327,8 @@ function Dashboard() {
     logoutBtn: (isHovered) => ({
       padding: "10px 12px",
       borderRadius: "8px",
-      backgroundColor: isHovered ? "#2f2f2f" : "transparent",
-      color: "#f87171",
+      backgroundColor: isHovered ? colors.btnHover : "transparent",
+      color: isLight ? "#dc2626" : "#f87171",
       border: "none",
       cursor: "pointer",
       fontWeight: 500,
@@ -271,24 +354,26 @@ function Dashboard() {
       width: "100%",
       maxWidth: "768px",
       margin: "0 auto",
-      padding: isMobile ? "24px 16px 160px 16px" : "40px 24px 160px 24px",
+      padding: isMobile 
+        ? `24px 16px ${isCompact ? "120px" : "160px"} 16px` 
+        : `40px 24px ${isCompact ? "120px" : "160px"} 24px`,
       boxSizing: "border-box",
     },
     userMessageWrapper: {
       display: "flex",
       justifyContent: "flex-end",
       width: "100%",
-      marginBottom: "24px",
+      marginBottom: isCompact ? "12px" : "24px",
     },
     userMessageBubble: {
       backgroundColor: "#2563eb",
       color: "#ffffff",
-      padding: "10px 16px",
+      padding: isCompact ? "8px 12px" : "10px 16px",
       borderRadius: "20px",
       borderBottomRightRadius: "4px",
       maxWidth: "70%",
       boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-      fontSize: "15px",
+      fontSize: `${baseFontSize - 1}px`,
       lineHeight: 1.5,
       wordBreak: "break-word",
       textAlign: "left",
@@ -298,24 +383,24 @@ function Dashboard() {
       flexDirection: "column",
       alignItems: "flex-start",
       width: "100%",
-      marginBottom: "32px",
+      marginBottom: isCompact ? "16px" : "32px",
     },
     assistantHeader: (provider) => {
       const isGemini = provider?.toLowerCase().includes("gemini");
       const isGroq = provider?.toLowerCase().includes("groq");
       return {
-        fontSize: "15px",
+        fontSize: "14px",
         fontWeight: 600,
-        color: isGemini ? "#60a5fa" : (isGroq ? "#4ade80" : "#ffffff"),
+        color: isGemini ? (isLight ? "#2563eb" : "#60a5fa") : (isGroq ? (isLight ? "#16a34a" : "#4ade80") : colors.textApp),
         display: "flex",
         alignItems: "center",
         gap: "6px",
-        marginBottom: "8px",
+        marginBottom: isCompact ? "4px" : "8px",
       };
     },
     assistantBody: {
-      color: "#ececec",
-      fontSize: "15px",
+      color: colors.assistantText,
+      fontSize: `${baseFontSize - 1}px`,
       lineHeight: 1.6,
       width: "100%",
       wordBreak: "break-word",
@@ -325,11 +410,11 @@ function Dashboard() {
       display: "flex",
       alignItems: "center",
       gap: "12px",
-      color: "#b4b4b4",
+      color: colors.assistantMetaText,
       fontSize: "12px",
-      marginTop: "12px",
-      borderTop: "1px solid #2f2f2f",
-      paddingTop: "8px",
+      marginTop: isCompact ? "6px" : "12px",
+      borderTop: `1px solid ${isLight ? "#e5e7eb" : "#2f2f2f"}`,
+      paddingTop: isCompact ? "4px" : "8px",
       width: "100%",
     },
     bottomInputOuter: {
@@ -337,7 +422,7 @@ function Dashboard() {
       bottom: 0,
       left: 0,
       right: 0,
-      background: "linear-gradient(180deg, rgba(33,33,33,0) 0%, #212121 40%)",
+      background: colors.bgInputOuter,
       padding: isMobile ? "16px 12px 24px 12px" : "24px 24px 36px 24px",
       display: "flex",
       flexDirection: "column",
@@ -365,9 +450,15 @@ function Dashboard() {
       return {
         padding: "6px 12px",
         borderRadius: "16px",
-        border: "1px solid " + (isSelected ? "#ffffff" : "#424242"),
-        backgroundColor: isSelected ? "#ffffff" : (isHovered ? "#2e2e2e" : "transparent"),
-        color: isSelected ? "#000000" : "#b4b4b4",
+        border: isSelected 
+          ? `1px solid ${isLight ? "#2563eb" : "#ffffff"}` 
+          : `1px solid ${isLight ? "#d1d5db" : "#424242"}`,
+        backgroundColor: isSelected 
+          ? (isLight ? "#2563eb" : "#ffffff") 
+          : (isHovered ? (isLight ? "#e5e7eb" : "#2e2e2e") : "transparent"),
+        color: isSelected 
+          ? (isLight ? "#ffffff" : "#000000") 
+          : (isLight ? "#4b5563" : "#b4b4b4"),
         fontSize: "13px",
         fontWeight: 500,
         cursor: "pointer",
@@ -381,9 +472,9 @@ function Dashboard() {
       position: "relative",
       display: "flex",
       alignItems: "center",
-      backgroundColor: "#2f2f2f",
+      backgroundColor: colors.bgInputContainer,
       borderRadius: "24px",
-      border: isTextareaFocused ? "1px solid #676767" : "1px solid #424242",
+      border: colors.borderInputContainer,
       padding: "6px 12px",
       transition: "border-color 0.2s, box-shadow 0.2s",
       boxShadow: isTextareaFocused ? "0 0 0 1px rgba(255, 255, 255, 0.1)" : "none",
@@ -392,8 +483,8 @@ function Dashboard() {
       flex: 1,
       background: "none",
       border: "none",
-      color: "white",
-      fontSize: "15px",
+      color: colors.textInput,
+      fontSize: `${baseFontSize - 1}px`,
       outline: "none",
       resize: "none",
       padding: "8px 12px",
@@ -405,8 +496,8 @@ function Dashboard() {
       width: "32px",
       height: "32px",
       borderRadius: "50%",
-      backgroundColor: isDisabled ? "transparent" : "#ffffff",
-      color: isDisabled ? "#676767" : "#000000",
+      backgroundColor: isDisabled ? "transparent" : (isLight ? "#2563eb" : "#ffffff"),
+      color: isDisabled ? (isLight ? "#9ca3af" : "#676767") : (isLight ? "#ffffff" : "#000000"),
       border: "none",
       cursor: isDisabled ? "not-allowed" : "pointer",
       display: "flex",
@@ -418,7 +509,10 @@ function Dashboard() {
     })
   };
 
-  useEffect(() => {fetchSessions();}, []); // Fetch chat sessions on component mount
+  useEffect(() => {
+    fetchSessions();
+    fetchPreferences();
+  }, []); // Fetch chat sessions & preferences on component mount
 
   // Function to fetch chat sessions from the backend and store them in state
   const fetchSessions = async () => {
@@ -470,8 +564,8 @@ function Dashboard() {
       const oldMessageIds = new Set(currentMessages.map(m => m.id));
       const newMessages = data.filter(m => !oldMessageIds.has(m.id));
 
-      // We only animate if currentMessages was not empty AND we have new assistant messages.
-      const shouldAnimate = currentMessages.length > 0 && newMessages.some(m => m.role === "assistant");
+      // We only animate if typewriter_animation is enabled, currentMessages was not empty AND we have new assistant messages.
+      const shouldAnimate = preferences.typewriter_animation && currentMessages.length > 0 && newMessages.some(m => m.role === "assistant");
 
       if (shouldAnimate) {
         // Initialize state to include old messages, new user message, and new assistant messages with empty text
@@ -621,6 +715,7 @@ function Dashboard() {
     try {
 
       // fetches the ai response from the backend
+      const token = localStorage.getItem("access_token");
       const response = await fetch(
         "http://127.0.0.1:8000/orchestrate",
         // "https://ai-orchestrator-i4w5.onrender.com/orchestrate",
@@ -628,11 +723,13 @@ function Dashboard() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             prompt: prompt,
             providers:
               selectedProviders.length > 0 ? selectedProviders.map((provider) => provider.toLowerCase()) : [],
+            session_id: activeSession,
           }),
         }
       );
@@ -769,6 +866,7 @@ function Dashboard() {
 
       setRegeneratingProvider(provider); // Set the currently regenerating provider to show loading state on that specific card
 
+      const token = localStorage.getItem("access_token");
       const response = await fetch(
         "http://127.0.0.1:8000/orchestrate",
         // "https://ai-orchestrator-i4w5.onrender.com/orchestrate",
@@ -778,6 +876,7 @@ function Dashboard() {
 
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
 
           body: JSON.stringify({
@@ -785,6 +884,8 @@ function Dashboard() {
             prompt: lastPrompt || prompt,
 
             providers: [provider.toLowerCase().includes("gemini") ? "gemini" : "groq"],
+
+            session_id: activeSession,
           }),
         }
       );
@@ -895,14 +996,37 @@ function Dashboard() {
       {/* Sidebar - Chat History */}
       <div style={styles.sidebar}>
         <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
-          <button
-            onClick={() => setShowSessionModal(true)} // Open the session management modal to create a new chat session
-            style={styles.newChatBtn(hoveredNewChat)}
-            onMouseEnter={() => setHoveredNewChat(true)}
-            onMouseLeave={() => setHoveredNewChat(false)}
-          >
-            + New Chat
-          </button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "8px" }}>
+            <button
+              onClick={() => setShowSessionModal(true)} // Open the session management modal to create a new chat session
+              style={{ ...styles.newChatBtn(hoveredNewChat), flex: 1 }}
+              onMouseEnter={() => setHoveredNewChat(true)}
+              onMouseLeave={() => setHoveredNewChat(false)}
+            >
+              + New Chat
+            </button>
+            {!isMobile && (
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                style={{
+                  background: "none",
+                  border: `1px solid ${colors.newChatBorder}`,
+                  color: colors.btnText,
+                  borderRadius: "8px",
+                  padding: "10px 12px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.2s ease",
+                  backgroundColor: "transparent",
+                }}
+                title="Collapse sidebar"
+              >
+                ◀
+              </button>
+            )}
+          </div>
           <h2 style={styles.sidebarTitle}>Chat History</h2>
           <div style={styles.sidebarSessionList}>
             {sessions.map((session) => (
@@ -949,6 +1073,32 @@ function Dashboard() {
 
       {/* Main Content Area */}
       <div style={styles.mainContent}>
+        {!isSidebarOpen && !isMobile && (
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            style={{
+              position: "absolute",
+              top: "16px",
+              left: "16px",
+              zIndex: 40,
+              backgroundColor: colors.bgSidebar,
+              border: colors.borderSidebar,
+              color: colors.btnText,
+              borderRadius: "8px",
+              padding: "8px 12px",
+              cursor: "pointer",
+              fontSize: "18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              transition: "all 0.2s ease",
+            }}
+            title="Expand sidebar"
+          >
+            ☰
+          </button>
+        )}
         
         {/* Scrollable Conversation wrapper */}
         <div style={styles.chatWrapper}>
@@ -959,29 +1109,33 @@ function Dashboard() {
                 return (
                   <div key={message.id} style={styles.userMessageWrapper}>
                     <div style={styles.userMessageBubble}>
-                      <ReactMarkdown
-                        components={{
-                          code(props) {
-                            const { children, className } = props;
-                            const match = /language-(\w+)/.exec(className || "");
-                            return match ? (
-                              <SyntaxHighlighter
-                                style={oneDark}
-                                language={match[1]}
-                                PreTag="div"
-                              >
-                                {String(children).replace(/\n$/, "")}
-                              </SyntaxHighlighter>
-                            ) : (
-                              <code className={className}>
-                                {children}
-                              </code>
-                            );
-                          },
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                      {preferences.render_markdown ? (
+                        <ReactMarkdown
+                          components={{
+                            code(props) {
+                              const { children, className } = props;
+                              const match = /language-(\w+)/.exec(className || "");
+                              return (match && preferences.code_highlighting) ? (
+                                <SyntaxHighlighter
+                                  style={oneDark}
+                                  language={match[1]}
+                                  PreTag="div"
+                                >
+                                  {String(children).replace(/\n$/, "")}
+                                </SyntaxHighlighter>
+                              ) : (
+                                <code className={className} style={{ backgroundColor: isLight ? "#e5e7eb" : "#2f2f2f", color: colors.textApp, padding: "2px 4px", borderRadius: "4px" }}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      ) : (
+                        <div style={{ whiteSpace: "pre-wrap" }}>{message.content}</div>
+                      )}
                     </div>
                   </div>
                 );
@@ -995,39 +1149,45 @@ function Dashboard() {
                       {providerIcon} {providerBrand}
                     </div>
                     <div style={styles.assistantBody}>
-                      <ReactMarkdown
-                        components={{
-                          code(props) {
-                            const { children, className } = props;
-                            const match = /language-(\w+)/.exec(className || "");
-                            return match ? (
-                              <SyntaxHighlighter
-                                style={oneDark}
-                                language={match[1]}
-                                PreTag="div"
-                              >
-                                {String(children).replace(/\n$/, "")}
-                              </SyntaxHighlighter>
-                            ) : (
-                              <code className={className}>
-                                {children}
-                              </code>
-                            );
-                          },
-                        }}
-                      >
-                        {message.content}
-                      </ReactMarkdown>
+                      {preferences.render_markdown ? (
+                        <ReactMarkdown
+                          components={{
+                            code(props) {
+                              const { children, className } = props;
+                              const match = /language-(\w+)/.exec(className || "");
+                              return (match && preferences.code_highlighting) ? (
+                                <SyntaxHighlighter
+                                  style={oneDark}
+                                  language={match[1]}
+                                  PreTag="div"
+                                >
+                                  {String(children).replace(/\n$/, "")}
+                                </SyntaxHighlighter>
+                              ) : (
+                                <code className={className} style={{ backgroundColor: isLight ? "#e5e7eb" : "#2f2f2f", color: colors.textApp, padding: "2px 4px", borderRadius: "4px" }}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      ) : (
+                        <div style={{ whiteSpace: "pre-wrap" }}>{message.content}</div>
+                      )}
                     </div>
-                    <div style={styles.assistantMeta}>
-                      <span>⏱ {message.latency} s</span>
-                      <span>•</span>
-                      <span>🪙 {message.token_count} tokens</span>
-                      <span>•</span>
-                      <span>
-                        {message.status === "success" ? "🟢 Success" : "🔴 Failed"}
-                      </span>
-                    </div>
+                    {preferences.show_analytics && (
+                      <div style={styles.assistantMeta}>
+                        <span>⏱ {message.latency} s</span>
+                        <span>•</span>
+                        <span>🪙 {message.token_count} tokens</span>
+                        <span>•</span>
+                        <span>
+                          {message.status === "success" ? "🟢 Success" : "🔴 Failed"}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               }
@@ -1199,6 +1359,14 @@ function Dashboard() {
       {showPreferencesModal && (
           <PreferencesModal
               onClose={() => setShowPreferencesModal(false)}
+              onSaveSuccess={(updatedPrefs) => {
+                  setPreferences(updatedPrefs);
+                  if (updatedPrefs.preferred_provider) {
+                      const providerName = updatedPrefs.preferred_provider.charAt(0).toUpperCase() + updatedPrefs.preferred_provider.slice(1);
+                      setSelectedProviders([providerName]);
+                  }
+                  setIsSidebarOpen(!updatedPrefs.sidebar_collapsed);
+              }}
           />
       )}
 

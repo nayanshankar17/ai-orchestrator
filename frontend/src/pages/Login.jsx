@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
@@ -10,14 +10,6 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false); // State to indicate if login is in progress
   const [error, setError] = useState(""); // State to hold any error messages
-
-  // On component mount, check if there's already a token in local storage. If there is, navigate to the dashboard.
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      navigate("/dashboard", {replace: true,});
-    }
-  }, []);
 
   // Function to handle login form submission
   const handleLogin = async (e) => {

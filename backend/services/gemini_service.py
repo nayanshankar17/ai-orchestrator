@@ -12,7 +12,7 @@ client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY") # Access the Gemini API key from environment variables.
 )
 
-def generate_gemini_response(history):
+def generate_gemini_response(history, user=None):
 
     log_info("Sending request to Gemini")
 
@@ -39,12 +39,23 @@ def generate_gemini_response(history):
         content = message["content"]
         conversation_history += f"{role}: {content}\n" # Format the conversation history as a string to pass to the Gemini API.
 
+    # Default parameters
+    model = "gemini-2.5-flash"
+    temperature = 0.5
+    max_tokens = 700
+
+    if user and user.preferences:
+        temperature = user.preferences.temperature
+        max_tokens = user.preferences.max_tokens
+        if user.preferences.preferred_provider == "gemini" and user.preferences.preferred_model:
+            model = user.preferences.preferred_model
+
     response = client.models.generate_content(
-        model="gemini-2.5-flash", # Specify the Gemini model to use for generating content.     
+        model=model, # Specify the Gemini model to use for generating content.     
         contents=conversation_history, # Pass the conversation history to the Gemini API for context-aware response generation.
         config={
-            "max_output_tokens": 700, # for token optimization (earlier i used 300, but the gemini gave incomplete responses, so changeges to 700)
-            "temperature": 0.5, # this controles the nature of response, eg: 0.5 means balanced response, 1.0 means creative response, etc..
+            "max_output_tokens": max_tokens, # for token optimization (mapped dynamically from preferences)
+            "temperature": temperature, # this controls the nature of response (mapped dynamically from preferences)
         }
     )
 
