@@ -22,10 +22,13 @@ def generate_groq_response(history, user=None):
     temperature = 0.7
     max_tokens = 400
 
+    print("Preferred Provider:", user.preferences.preferred_provider)
+    print("Preferred Model:", user.preferences.preferred_model)
+
     if user and user.preferences:
         temperature = user.preferences.temperature
         max_tokens = user.preferences.max_tokens
-        if user.preferences.preferred_provider == "groq" and user.preferences.preferred_model:
+        if user.preferences.preferred_provider == "groq" and user.preferences.preferred_model and user.preferences.preferred_model != "string":
             model = user.preferences.preferred_model
 
     response = client.chat.completions.create(
@@ -60,7 +63,7 @@ def generate_groq_response(history, user=None):
     token_count = estimate_tokens(response_text)
     if response_text is None:
         token_count = 0
-
+    
     return {
         "provider": "Groq",
         "response": response.choices[0].message.content,

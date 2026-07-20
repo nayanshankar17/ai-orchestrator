@@ -67,12 +67,8 @@ async def run_orchestration(user_prompt, selected_providers, user=None, history=
 
         for result in results:
             if isinstance(result, Exception): # if any provider fails, we catch the exception and return a generic error response for that provider
-                responses.append({
-                    "provider": "unknown",
-                    "latency": "--",
-                    "response": "Provider unavailable. Please try again.",
-                    "status": "error",
-                })
+                print("GROQ EXCEPTION:", repr(result))
+                raise result
             else:
                 responses.append(result)
                 history.append({

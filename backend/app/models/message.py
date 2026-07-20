@@ -41,7 +41,6 @@ class Message(Base):
         default=uuid.uuid4
     )
 
-
     # Parent session ID
     session_id = Column(
         UUID(as_uuid=True),
