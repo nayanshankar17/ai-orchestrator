@@ -2,273 +2,126 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Register() {
+  const navigate = useNavigate();
 
-  const navigate = useNavigate(); // For navigation after registration
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [email, setEmail] = useState(""); // State for email input
-  const [password, setPassword] = useState(""); // State for password input
-  const [confirmPassword, setConfirmPassword] = useState(""); // State for confirm password input
-  const [name, setName] = useState(""); // State for name input
-
-  const [loading, setLoading] = useState(false); // State to indicate if registration is in progress
-  const [error, setError] = useState(""); // State to hold any error messages
-
-
-
-  // Function to handle registration form submission
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
 
-    if(password !== confirmPassword){
+    if (password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
 
     setLoading(true);
 
-    //backend integration
     try {
-      const response = await fetch(
-      "http://127.0.0.1:8000/auth/register", //backend url for registration router
-        {
-          method: "POST",
+      const response = await fetch("http://127.0.0.1:8000/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
 
-          // Send the registration data as JSON
-          headers: {
-            "Content-Type": "application/json",
-          },
+      const data = await response.json();
 
-          body: JSON.stringify({
-            name,
-            email,
-            password,
-          }),
-        }
-      );
-
-      const data = await response.json(); // wait for the response and parse it as JSON
-
-      //if the response is absurd(not ok), throw an error with the message from the response or a default message
       if (!response.ok) {
-        throw new Error(
-          data.detail || "Registration failed"
-        );
+        throw new Error(data.detail || "Registration failed");
       }
-      alert("Account created successfully!");
+
       navigate("/");
-    }
-
-    // If there's an error during registration, catch it and set the error message
-    catch (err) {
+    } catch (err) {
       setError(err.message);
-    }
-
-    // Always set loading to false after the attempt
-    finally {
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#0f172a",
-      }}
-    >
-      <div
-        style={{
-          width: "400px",
-          padding: "30px",
-          backgroundColor: "#1e293b",
-          borderRadius: "12px",
-          boxShadow: "0 0 20px rgba(0,0,0,0.3)",
-        }}
-      >
-
-        <h2
-          style={{
-            color: "white",
-            textAlign: "center",
-            marginBottom: "25px",
-          }}
-        >
-          AI Orchestrator
-        </h2>
+    <div className="page-shell">
+      <div className="auth-card">
+        <div className="brand-badge">AI Orchestrator</div>
+        <h2 className="auth-title">Create your account</h2>
+        <p className="auth-subtitle">Start a clean, intelligent workspace for all your AI conversations.</p>
 
         <form onSubmit={handleRegister}>
-
-          <div style={{ marginBottom: "15px" }}>
-            <label
-              style={{
-                color: "white",
-                display: "block",
-                textAlign: "left",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Name
-            </label>
-
+          <div className="form-group">
+            <label className="form-label" htmlFor="name">Name</label>
             <input
-              type="name"
+              id="name"
+              className="auth-input"
+              type="text"
               value={name}
-              onChange={(e) =>
-                setName(e.target.value)
-              }
-              placeholder="Enter name"
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
               required
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "none",
-              }}
             />
           </div>
 
-          <div style={{ marginBottom: "15px" }}>
-            <label
-              style={{
-                color: "white",
-                display: "block",
-                textAlign: "left",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Email
-            </label>
-
+          <div className="form-group">
+            <label className="form-label" htmlFor="email">Email</label>
             <input
+              id="email"
+              className="auth-input"
               type="email"
               value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              placeholder="Enter email"
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
               required
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "none",
-              }}
             />
           </div>
 
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              style={{
-                color: "white",
-                display: "block",
-                textAlign: "left",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Password
-            </label>
-
+          <div className="form-group">
+            <label className="form-label" htmlFor="password">Password</label>
             <input
+              id="password"
+              className="auth-input"
               type="password"
               value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              placeholder="Enter password"
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Create a password"
               required
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "none",
-              }}
             />
           </div>
 
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              style={{
-                color: "white",
-                display: "block",
-                textAlign: "left",
-                fontSize: "14px",
-                marginBottom: "8px",
-              }}
-            >
-              Confirm Password
-            </label>
-
+          <div className="form-group">
+            <label className="form-label" htmlFor="confirmPassword">Confirm Password</label>
             <input
+              id="confirmPassword"
+              className="auth-input"
               type="password"
               value={confirmPassword}
-              onChange={(e) =>
-                setConfirmPassword(e.target.value)
-              }
-              placeholder="Enter password again"
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm password"
               required
-              style={{
-                width: "100%",
-                padding: "12px",
-                borderRadius: "8px",
-                border: "none",
-              }}
             />
           </div>
 
-          {error && (
-            <p
-              style={{
-                color: "#ef4444",
-                marginBottom: "15px",
-              }}
-            >
-              {error}
-            </p>
-          )}
+          {error && <p className="error-text">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px",
-              border: "none",
-              borderRadius: "8px",
-              backgroundColor: "#2563eb",
-              color: "white",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            {loading
-              ? "Registering..."
-              : "Register"}
+          <button className="auth-button" type="submit" disabled={loading}>
+            {loading ? "Creating account..." : "Register"}
           </button>
 
-          <p style={{
-            color: "white",
-            textAlign: "center",
-            marginTop: "15px",
-          }}>
-            Already have an account?
-            <span onClick={() => navigate("/")} style={{
-              color: "#2563eb",
-              marginLeft: "5px",
-              cursor: "pointer",
-            }}>
-                Login
+          <p style={{ color: "#cbd5e1", textAlign: "center", marginTop: "18px" }}>
+            Already have an account?{" "}
+            <span className="auth-link" onClick={() => navigate("/")}>
+              Login
             </span>
           </p>
-
         </form>
-
       </div>
     </div>
   );

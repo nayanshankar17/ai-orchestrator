@@ -20,6 +20,9 @@ from app.enums.messsage_role import MessageRole # to use the enum for message ro
 class sessionCreate(BaseModel):
     title: str
 
+class sessionUpdate(BaseModel):
+    title: str
+
 # Response when session is returned
 class sessionResponse(BaseModel):
     id: UUID
