@@ -203,10 +203,24 @@ class AnalyticsService:
             .all()
         )
 
+        activity = []
+
+        for session in recent_sessions:
+            latest_provider = (
+                db.query(Message.provider)
+                .filter(
+                    Message.session_id == session.id,
+                    Message.provider.isnot(None)
+                )
+                .order_by(Message.created_at.desc())
+                .first()
+            )
+
         return [
             {
                 "session_id": session.id,
                 "session_title": session.title,
+                "provider": latest_provider[0] if latest_provider else None,
                 "created_at": session.created_at,
             }
             for session in recent_sessions

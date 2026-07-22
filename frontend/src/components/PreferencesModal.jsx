@@ -1,5 +1,20 @@
 import { useState, useEffect } from "react";
 
+const MODEL_OPTIONS = {
+    groq: [
+        {
+            value: "llama-3.3-70b-versatile",
+            label: "Llama 3.3 70B Versatile",
+        },
+    ],
+    gemini: [
+        {
+            value: "gemini-2.5-flash",
+            label: "Gemini 2.5 Flash",
+        },
+    ],
+};
+
 // Toggle Component (Custom Switch)
 function Toggle({ checked, onChange }) {
     return (
@@ -491,6 +506,8 @@ function PreferencesModal({ onClose, onSaveSuccess }) {
                                             setPreferences({
                                                 ...preferences,
                                                 preferred_provider: e.target.value,
+                                                preferred_model:
+                                                    MODEL_OPTIONS[e.target.value]?.[0]?.value || "",
                                             })
                                         }
                                         style={styles.select}
@@ -502,9 +519,7 @@ function PreferencesModal({ onClose, onSaveSuccess }) {
 
                                 <div style={styles.field}>
                                     <label style={styles.label}>Preferred Model</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. llama-3.3-70b-versatile or gemini-2.5-flash"
+                                    <select
                                         value={preferences.preferred_model}
                                         onChange={(e) =>
                                             setPreferences({
@@ -512,8 +527,15 @@ function PreferencesModal({ onClose, onSaveSuccess }) {
                                                 preferred_model: e.target.value,
                                             })
                                         }
-                                        style={styles.input}
-                                    />
+                                        style={styles.select}
+                                    >
+                                        <option value="">Select a model</option>
+                                        {(MODEL_OPTIONS[preferences.preferred_provider] || []).map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div style={styles.field}>

@@ -1,5 +1,5 @@
 import { useState , useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 // these import re for markdown rendering, they maintain bold, italic, bullets etc
 import ReactMarkdown from "react-markdown";
@@ -14,9 +14,6 @@ function Dashboard() {
   // Store the current prompt input by the user
   const [prompt, setPrompt] = useState("");
 
-  // Store the last prompt to allow regenerating responses without needing to re-enter the prompt
-  const [lastPrompt, setLastPrompt] = useState("");
-
   const [displayedResponses, setDisplayedResponses] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
@@ -29,9 +26,6 @@ function Dashboard() {
 
   // Loading state for the main generate button
   const [loading, setLoading] = useState(false);
-
-  // For regenerating specific provider response, Tracks WHICH provider is currently regenerating. This allows us to show a loading state on the specific provider card while it's regenerating, without affecting the others.
-  const [regeneratingProvider, setRegeneratingProvider] = useState(null);
 
   // Store selected providers for smart routing
   const [selectedProviders, setSelectedProviders] = useState([]);
@@ -90,6 +84,7 @@ function Dashboard() {
 
   // navigation hook from react-router-dom to navigate programmatically
   const navigate = useNavigate();
+  const location = useLocation();
   const handleLogout = () => {
     localStorage.removeItem("access_token");
     navigate("/", {replace: true }); // Navigate to login page and replace history to prevent going back
@@ -110,6 +105,7 @@ function Dashboard() {
   const [hoveredGenerate, setHoveredGenerate] = useState(false);
   const [hoveredLogout, setHoveredLogout] = useState(false);
   const [hoveredPreferences, setHoveredPreferences] = useState(false);
+  const [hoveredAnalytics, setHoveredAnalytics] = useState(false);
 
   useEffect(() => {
     setIsMobile(window.innerWidth <= 768);
@@ -340,6 +336,22 @@ function Dashboard() {
       width: "100%",
       boxSizing: "border-box",
     }),
+    analyticsBtn: (isHovered) => ({
+      padding: "10px 12px",
+      borderRadius: "8px",
+      backgroundColor: isHovered ? colors.btnHover : "transparent",
+      color: isLight ? "#2563eb" : "#93c5fd",
+      border: "none",
+      cursor: "pointer",
+      fontWeight: 500,
+      fontSize: "13.5px",
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+      transition: "all 0.2s ease",
+      width: "100%",
+      boxSizing: "border-box",
+    }),
     chatWrapper: {
       flex: 1,
       overflowY: "auto",
@@ -513,6 +525,18 @@ function Dashboard() {
     fetchSessions();
     fetchPreferences();
   }, []); // Fetch chat sessions & preferences on component mount
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get("session");
+
+    if (!sessionId || sessions.length === 0 || activeSession === sessionId) {
+      return;
+    }
+
+    setActiveSession(sessionId);
+    loadSessionMessages(sessionId);
+  }, [location.search, sessions]);
 
   // Function to fetch chat sessions from the backend and store them in state
   const fetchSessions = async () => {
@@ -705,7 +729,6 @@ function Dashboard() {
   const sendPrompt = async () => {
 
     //if no prompt exists
-    setLastPrompt(prompt);
     if (!prompt.trim()) {
       return;
     }
@@ -737,8 +760,6 @@ function Dashboard() {
       
       const data = await response.json();
 
-      setResponses(data.responses);
-     
       setDisplayedResponses(
         data.responses.map((item) => ({
           ...item,
@@ -787,53 +808,10 @@ function Dashboard() {
         },
       ];
 
-      setResponses(errorResponse);
       setDisplayedResponses(errorResponse);
     }
 
     setLoading(false);
-  };
-  
-  // Function to animate the typing effect for each provider's response
-  const animateResponses = (responsesData) => {
-    animationIntervals.current.forEach(clearInterval); // Clear any existing intervals to prevent overlapping animations
-    animationIntervals.current = []; // Reset the intervals array for the new animations
-    responsesData.forEach((item, index) => {
-
-      let currentText = "";
-
-      let i = 0;
-
-      const interval = setInterval(() => {
-
-        if (i < item.response.length) {
-
-          currentText += item.response[i];
-
-          setDisplayedResponses((prev) => {
-
-            const updated = [...prev];
-
-            updated[index] = {
-
-              ...updated[index],
-
-              response: currentText,
-            };
-
-            return updated;
-          });
-
-          i++;
-
-        } else {
-
-          clearInterval(interval);
-        }
-
-      }, 5);
-      animationIntervals.current.push(interval);
-    });
   };
 
   // Function to determine the color of the status indicator based on the response status
@@ -847,128 +825,6 @@ function Dashboard() {
     return "#facc15";
   };
 
-
-  // Function to copy a provider's response to the clipboard and alert the user upon success or log an error if it fails
-  const copyResponse = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      alert("Response copied successfully!");
-
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  // Regenerate response for a specific provider
-  const regenerateResponse = async (provider) => {
-
-    try {
-
-      setRegeneratingProvider(provider); // Set the currently regenerating provider to show loading state on that specific card
-
-      const token = localStorage.getItem("access_token");
-      const response = await fetch(
-        "http://127.0.0.1:8000/orchestrate",
-        // "https://ai-orchestrator-i4w5.onrender.com/orchestrate",
-
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-
-          body: JSON.stringify({
-
-            prompt: lastPrompt || prompt,
-
-            providers: [provider.toLowerCase().includes("gemini") ? "gemini" : "groq"],
-
-            session_id: activeSession,
-          }),
-        }
-      );
-
-      const data = await response.json(); // We expect the backend to return an array with a single response for the requested provider
-
-      const updatedResponse = data.responses[0]; // Extract the updated response for the specific provider
-
-      setResponses((prev) =>
-
-        prev.map((item) =>
-
-          item.provider === provider
-            ? updatedResponse
-            : item
-        )
-      );
-
-      // Update displayed responses and trigger the typing animation for just this provider
-      setDisplayedResponses((prev) => {
-        const updated = [...prev];
-        const index = updated.findIndex((item) => item.provider === provider);
-        if (index !== -1) {
-          updated[index] = {
-            ...updatedResponse,
-            response: "",
-          };
-
-          let currentText = "";
-          let i = 0;
-          const interval = setInterval(() => {
-            if (i < updatedResponse.response.length) {
-              currentText += updatedResponse.response[i];
-              setDisplayedResponses((prevDisp) => {
-                const innerUpdated = [...prevDisp];
-                innerUpdated[index] = {
-                  ...innerUpdated[index],
-                  response: currentText,
-                };
-                return innerUpdated;
-              });
-              i++;
-            } else {
-              clearInterval(interval);
-            }
-          }, 5);
-          animationIntervals.current.push(interval);
-        }
-        return updated;
-      });
-
-    }
-
-    catch (error) {
-
-      console.log(error);
-
-      const errorResponse = {
-        provider: provider,
-        response: "Provider unavailable. Please try again.",
-        latency: "--",
-        token_count: 0,
-        status: "error",
-      };
-
-      setResponses((prev) =>
-        prev.map((item) =>
-          item.provider === provider ? errorResponse : item
-        )
-      );
-
-      setDisplayedResponses((prev) =>
-        prev.map((item) =>
-          item.provider === provider ? errorResponse : item
-        )
-      );
-    }
-
-    finally {
-
-      setRegeneratingProvider(null);
-    }
-  };
 
   
   return (
@@ -1059,6 +915,14 @@ function Dashboard() {
             style={styles.preferencesBtn(hoveredPreferences)}
           >
             ⚙️ Preferences
+          </button>
+          <button
+            onClick={() => navigate("/analytics")}
+            onMouseEnter={() => setHoveredAnalytics(true)}
+            onMouseLeave={() => setHoveredAnalytics(false)}
+            style={styles.analyticsBtn(hoveredAnalytics)}
+          >
+            📊 Analytics
           </button>
           <button
             onClick={handleLogout}

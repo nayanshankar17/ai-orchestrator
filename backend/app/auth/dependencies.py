@@ -8,6 +8,8 @@ from fastapi.security import OAuth2PasswordBearer
 
 from jose import JWTError,jwt
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import selectinload
+from uuid import UUID
 
 # Import database query function
 from sqlalchemy.future import select
@@ -50,7 +52,15 @@ def get_current_user(
         return None
     
     # query database for user
-    statement = select(User).where(User.id == user_id)
+    try:
+        user_uuid = UUID(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+        )
+
+    statement = select(User).options(selectinload(User.preferences)).where(User.id == user_uuid)
 
     # execute query: Send the SQL query to PostgreSQL and get the result back. 
     result = db.execute(statement)
@@ -58,7 +68,7 @@ def get_current_user(
     # Extract actual User object
     user = result.scalar_one_or_none()
 
-    if user_id is None:
+    if user is None:
         raise HTTPException(
             status_code=401,
             detail="Invalid token",
