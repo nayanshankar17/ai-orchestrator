@@ -115,7 +115,6 @@ function PreferencesModal({ onClose, onSaveSuccess }) {
                 sidebar_collapsed: data.sidebar_collapsed !== undefined ? data.sidebar_collapsed : false,
             });
         } catch (error) {
-            console.error(error);
             setNotification({ type: "error", message: error.message || "Failed to load preferences." });
         } finally {
             setLoading(false);
@@ -161,7 +160,6 @@ function PreferencesModal({ onClose, onSaveSuccess }) {
             }, 400);
             
         } catch (error) {
-            console.error(error);
             setNotification({ type: "error", message: error.message || "Failed to save preferences." });
         } finally {
             setSaving(false);

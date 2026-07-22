@@ -15,7 +15,7 @@ from app.models.user import User
 from app.models.message import Message
 from app.models.chat_session import ChatSession
 
-from app.schemas.session_schema import sessionCreate, sessionResponse, messageCreate, messageResponse
+from app.schemas.session_schema import sessionCreate, sessionUpdate, sessionResponse, messageCreate, messageResponse
 
 router = APIRouter(
     prefix="/session", # All routes start with /session
@@ -45,6 +45,61 @@ def create_session(
 
     return new_session
 
+
+
+# ROUTE TO RENAME AN EXISTING SESSION
+@router.put(
+    "/{session_id}/rename",
+    response_model=sessionResponse
+)
+def rename_session(
+    session_id: str,
+    session_data: sessionUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    title = session_data.title.strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="Session title cannot be empty")
+
+    statement = select(ChatSession).where(ChatSession.id == session_id)
+    result = db.execute(statement)
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    session.title = title
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+# ROUTE TO DELETE AN EXISTING SESSION
+@router.delete(
+    "/{session_id}"
+)
+def delete_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    statement = select(ChatSession).where(ChatSession.id == session_id)
+    result = db.execute(statement)
+    session = result.scalar_one_or_none()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    db.delete(session)
+    db.commit()
+    return {"message": "Session deleted successfully"}
 
 
 # ROUTE TO GET THE LIST OF SESSIONS OF A SINGLE USER FROM THE DB, LATER SED TO CREATE THE SIDEBAR AS IN CHATGPT

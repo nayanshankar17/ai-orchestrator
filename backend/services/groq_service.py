@@ -23,9 +23,6 @@ def generate_groq_response(history, user=None):
     max_tokens = 400
 
     if user and user.preferences:
-        print("Preferred Provider:", user.preferences.preferred_provider)
-        print("Preferred Model:", user.preferences.preferred_model)
-
         temperature = user.preferences.temperature
         max_tokens = user.preferences.max_tokens
         if user.preferences.preferred_provider == "groq" and user.preferences.preferred_model:

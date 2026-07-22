@@ -52,6 +52,7 @@ function Dashboard() {
     compact_mode: false,
     sidebar_collapsed: false,
   });
+  const [userName, setUserName] = useState("User");
 
   const fetchPreferences = async () => {
     try {
@@ -78,7 +79,30 @@ function Dashboard() {
       
       setIsSidebarOpen(!data.sidebar_collapsed);
     } catch (error) {
-      console.error("Error loading preferences:", error);
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      const response = await fetch("http://127.0.0.1:8000/auth/me", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+      if (data?.name) {
+        setUserName(data.name);
+      }
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -93,6 +117,8 @@ function Dashboard() {
   const [sessions, setSessions] = useState([]); // Store all chat sessions
   const [activeSession, setActiveSession] = useState(null); // Store the currently active session to display its chat history and responses
   const [showSessionModal, setShowSessionModal] = useState(false); // State to control the visibility of the session management modal
+  const [sessionModalMode, setSessionModalMode] = useState("create"); // "create" or "rename"
+  const [editingSessionId, setEditingSessionId] = useState(null); // Session currently being renamed
   const [sessionTitle, setSessionTitle] = useState(""); // State to hold the title input when creating a new session or renaming an existing one
 
   // Responsive & Interactive states
@@ -524,7 +550,8 @@ function Dashboard() {
   useEffect(() => {
     fetchSessions();
     fetchPreferences();
-  }, []); // Fetch chat sessions & preferences on component mount
+    fetchCurrentUser();
+  }, []); // Fetch chat sessions, preferences, and user info on component mount
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -671,8 +698,23 @@ function Dashboard() {
   };
 
 
-  // Function to create a new chat session by calling the backend API and then refreshing the session list
+  const openCreateSessionModal = () => {
+    setSessionModalMode("create");
+    setEditingSessionId(null);
+    setSessionTitle("");
+    setShowSessionModal(true);
+  };
+
+  const openRenameSessionModal = (session) => {
+    setSessionModalMode("rename");
+    setEditingSessionId(session.id);
+    setSessionTitle(session.title);
+    setShowSessionModal(true);
+  };
+
   const createSession = async () => {
+    const trimmedTitle = sessionTitle.trim() || "Session";
+
     try {
       const token = localStorage.getItem("access_token");
       const response = await fetch("http://127.0.0.1:8000/session/create",
@@ -683,18 +725,81 @@ function Dashboard() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            title: sessionTitle.trim() || "Session", // Send the session title from state, defaulting to "Session" if empty
+            title: trimmedTitle,
           }),
         }
       );
       if (!response.ok) {
-        throw new Error(
-          "Failed to create session"
-        );
+        throw new Error("Failed to create session");
       }
-      setSessionTitle(""); // Clear the session title input after creating the session
-      setShowSessionModal(false); // Close the session creation modal
-      await fetchSessions(); // Refresh the session list after creating a new session
+
+      const newSession = await response.json();
+      setSessionTitle("");
+      setShowSessionModal(false);
+      await fetchSessions();
+      setActiveSession(newSession.id);
+      await loadSessionMessages(newSession.id, []);
+    }
+    catch (error) {
+      console.log(error);
+    }
+  };
+
+  const renameSession = async () => {
+    const trimmedTitle = sessionTitle.trim();
+    if (!trimmedTitle || !editingSessionId) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`http://127.0.0.1:8000/session/${editingSessionId}/rename`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title: trimmedTitle }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to rename session");
+      }
+
+      setSessionTitle("");
+      setEditingSessionId(null);
+      setShowSessionModal(false);
+      await fetchSessions();
+    }
+    catch (error) {
+      console.log(error);
+    }
+  };
+
+  const deleteSession = async (sessionId) => {
+    if (!window.confirm("Delete this session and its messages?")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await fetch(`http://127.0.0.1:8000/session/${sessionId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete session");
+      }
+
+      if (activeSession === sessionId) {
+        setActiveSession(null);
+        setMessages([]);
+      }
+
+      await fetchSessions();
     }
     catch (error) {
       console.log(error);
@@ -854,7 +959,7 @@ function Dashboard() {
         <div style={{ display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "8px" }}>
             <button
-              onClick={() => setShowSessionModal(true)} // Open the session management modal to create a new chat session
+              onClick={openCreateSessionModal}
               style={{ ...styles.newChatBtn(hoveredNewChat), flex: 1 }}
               onMouseEnter={() => setHoveredNewChat(true)}
               onMouseLeave={() => setHoveredNewChat(false)}
@@ -892,7 +997,7 @@ function Dashboard() {
                 onClick={() => {
                   setActiveSession(session.id);
                   loadSessionMessages(session.id);
-                  setIsSidebarOpen(false); // Close sidebar on mobile after choosing a session
+                  setIsSidebarOpen(false);
                 }}
                 onMouseEnter={() => setHoveredSessionId(session.id)}
                 onMouseLeave={() => setHoveredSessionId(null)}
@@ -900,6 +1005,46 @@ function Dashboard() {
                 <p style={styles.historyPromptText}>
                   {session.title}
                 </p>
+                <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openRenameSessionModal(session);
+                    }}
+                    style={{
+                      border: "none",
+                      background: "rgba(255,255,255,0.08)",
+                      color: colors.btnText,
+                      borderRadius: "999px",
+                      padding: "4px 8px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                    }}
+                    title="Rename session"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSession(session.id);
+                    }}
+                    style={{
+                      border: "none",
+                      background: "rgba(239, 68, 68, 0.15)",
+                      color: "#fda4af",
+                      borderRadius: "999px",
+                      padding: "4px 8px",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                    }}
+                    title="Delete session"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -964,6 +1109,29 @@ function Dashboard() {
           </button>
         )}
         
+        <div style={{
+          position: "absolute",
+          top: "16px",
+          right: "16px",
+          zIndex: 20,
+        }}>
+          <div style={{
+            backgroundColor: isLight ? "rgba(255,255,255,0.92)" : "rgba(23,23,23,0.94)",
+            border: `1px solid ${colors.borderSidebar}`,
+            borderRadius: "16px",
+            padding: "12px 16px",
+            boxShadow: isLight ? "0 10px 25px rgba(15, 23, 42, 0.08)" : "0 12px 28px rgba(0, 0, 0, 0.25)",
+          }}>
+            <div style={{
+              fontSize: "18px",
+              fontWeight: 700,
+              color: colors.textApp,
+            }}>
+              HI, {userName?.toUpperCase()}
+            </div>
+          </div>
+        </div>
+
         {/* Scrollable Conversation wrapper */}
         <div style={styles.chatWrapper}>
           <div style={styles.conversationContainer}>
@@ -1159,7 +1327,7 @@ function Dashboard() {
                 fontWeight: 600,
               }}
             >
-              Create New Session
+              {sessionModalMode === "rename" ? "Rename Session" : "Create New Session"}
             </h2>
 
             <input
@@ -1182,7 +1350,7 @@ function Dashboard() {
 
             <div style={{ display: "flex", gap: "10px" }}>
               <button
-                onClick={createSession}
+                onClick={sessionModalMode === "rename" ? renameSession : createSession}
                 style={{
                   flex: 1,
                   padding: "10px",
@@ -1194,12 +1362,13 @@ function Dashboard() {
                   cursor: "pointer",
                 }}
               >
-                Create
+                {sessionModalMode === "rename" ? "Save" : "Create"}
               </button>
               <button
                 onClick={() => {
                   setShowSessionModal(false);
                   setSessionTitle("");
+                  setEditingSessionId(null);
                 }}
                 style={{
                   flex: 1,
