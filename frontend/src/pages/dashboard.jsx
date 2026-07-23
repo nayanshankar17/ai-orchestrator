@@ -1127,7 +1127,7 @@ function Dashboard() {
               fontWeight: 700,
               color: colors.textApp,
             }}>
-              HI, {userName?.toUpperCase()}
+              Current User: {userName?.toUpperCase()}
             </div>
           </div>
         </div>

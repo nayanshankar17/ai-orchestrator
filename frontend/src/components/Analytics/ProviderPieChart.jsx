@@ -67,9 +67,9 @@ function ProviderPieChart({ data, colors }) {
                 )}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", color: colors.mutedText, fontSize: "12px" }}>
+            <div style={{ display: "flex", marginTop: "8px", color: colors.mutedText, fontSize: "12px"}}>
                 <span>Total messages</span>
-                <span style={{ color: colors.valueText, fontWeight: 700 }}>{total}</span>
+                <span style={{ color: colors.valueText, fontWeight: 700 , padding: "0 0 0 10px"}}>{total}</span>
             </div>
         </div>
     );

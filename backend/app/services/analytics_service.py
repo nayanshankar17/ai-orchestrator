@@ -1,3 +1,7 @@
+# THIS FILE IS PART OF THE BACKEND SERVICE LAYER FOR ANALYTICS FUNCTIONALITY, IT CONTAINS METHODS THAT 
+# INTERACT WITH THE DATABASE TO RETRIEVE ANALYTICS DATA RELATED TO USERS, SESSIONS, AND MESSAGES. THE 
+# SERVICE LAYER IS RESPONSIBLE FOR BUSINESS LOGIC AND DATA PROCESSING, SEPARATING IT FROM THE ROUTE HANDLERS.
+
 from app.models.user import User
 from app.models.chat_session import ChatSession
 from app.models.message import Message
@@ -51,9 +55,11 @@ class AnalyticsService:
             .first()
         )
 
-        last_session = (
-            sessions_query
-            .order_by(ChatSession.created_at.desc())
+        last_message = (
+            db.query(Message)
+            .join(ChatSession)
+            .filter(ChatSession.user_id == current_user.id)
+            .order_by(Message.created_at.desc())
             .first()
         )
 
@@ -65,7 +71,7 @@ class AnalyticsService:
                 total_messages / total_sessions if total_sessions > 0 else 0
             ),
             "last_chat_at": (
-                last_session.created_at if last_session else None
+                last_message.created_at if last_message else None
             )
         }
     
