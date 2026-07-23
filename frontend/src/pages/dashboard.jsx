@@ -7,7 +7,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // 
-import PreferencesModal from "C:/Users/Nayan Shankar/Desktop/ai-orchestrator/frontend/src/components/PreferencesModal.jsx";
+import PreferencesModal from "../components/PreferencesModal";
 
 function Dashboard() {  
 
