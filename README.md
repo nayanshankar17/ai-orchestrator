@@ -182,22 +182,6 @@ Designed for simplicity and productivity.
 
 ---
 
-## 📊 Analytics Dashboard
-
-<p align="center">
-  <img src="images/analytics.png" width="900" alt="Analytics Dashboard">
-</p>
-
----
-
-## ⚙️ Preferences
-
-<p align="center">
-  <img src="images/preferences.png" width="900" alt="Preferences">
-</p>
-
----
-
 # 🏗️ System Architecture
 
 ```text
