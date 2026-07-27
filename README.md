@@ -140,9 +140,7 @@ Designed for simplicity and productivity.
 
 ---
 
-# 🖼️ Screenshots
-
-> Replace these placeholders with actual project screenshots.
+# 📸 Application Screenshots
 
 ## 🔑 Login Page
 
@@ -152,10 +150,34 @@ Designed for simplicity and productivity.
 
 ---
 
-## 💬 Chat Dashboard
+## 📝 Register Page
 
 <p align="center">
-  <img src="images/chat.png" width="900" alt="Chat Dashboard">
+  <img src="images/register.png" width="900" alt="Register Page">
+</p>
+
+---
+
+## 💬 AI Chat Dashboard
+
+<p align="center">
+  <img src="images/dashboard.png" width="900" alt="AI Chat Dashboard">
+</p>
+
+---
+
+## 📊 Analytics Dashboard
+
+<p align="center">
+  <img src="images/analytics.png" width="900" alt="Analytics Dashboard">
+</p>
+
+---
+
+## ⚙️ User Preferences
+
+<p align="center">
+  <img src="images/preferences.png" width="900" alt="User Preferences">
 </p>
 
 ---
